@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "735601490065",
+    "project_id": "bacalah-app",
+    "storage_bucket": "bacalah-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:735601490065:android:c39ca20bbf4d99d0112730",
+        "android_client_info": {
+          "package_name": "id.bacalah.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYg6UiBqRY0el7LQcUu4Mlwq-NOVu7joI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

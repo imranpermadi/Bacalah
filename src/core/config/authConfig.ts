@@ -24,8 +24,8 @@ export const AUTH_GOOGLE_CONFIG = {
  * Firestore gratis: 50.000 bacaan & 20.000 tulisan per hari (sangat cukup untuk edukasi anak).
  */
 export const FREE_CLOUD_CONFIG = {
-  projectId: 'bacalah-app-free',
-  apiKey: '', // Dapat diisi API key Firebase dari konsol
+  projectId: 'bacalah-app',
+  apiKey: 'AIzaSyDrVRKiZ26ElZaqRmsn15VxakJY6U84Wso', // Firebase Web API Key
   firestoreEndpoint: (collection: string, docId: string) =>
-    `https://firestore.googleapis.com/v1/projects/bacalah-app-free/databases/(default)/documents/${collection}/${docId}`,
+    `https://firestore.googleapis.com/v1/projects/bacalah-app/databases/(default)/documents/${collection}/${docId}`,
 };
