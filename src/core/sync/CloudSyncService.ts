@@ -1,16 +1,10 @@
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import { AUTH_GOOGLE_CONFIG } from '../config/authConfig';
 import { GoogleAccount } from '../../domain/entities/LetterAccuracyStats';
 import { ReadingRepository } from '../../domain/repositories/ReadingRepository';
 
 WebBrowser.maybeCompleteAuthSession();
-
-// Google OAuth 2.0 Endpoints
-const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_USERINFO_ENDPOINT = 'https://openidconnect.googleapis.com/v1/userinfo';
-
-// Public default client ID untuk integrasi SSO Expo (bisa dioverride)
-const DEFAULT_GOOGLE_CLIENT_ID = '789123456789-bacalahmobileapp.apps.googleusercontent.com';
 
 export interface SyncState {
   isLoggedIn: boolean;
@@ -32,38 +26,65 @@ export class CloudSyncService {
 
   /**
    * Single Sign-On (SSO) Google resmi via in-app browser & OAuth2.
-   * Membuka halaman login resmi Google untuk autentikasi satu ketukan.
+   * Mendukung Authorization Code Exchange dengan Client Secret dan Implicit Token.
    */
-  async signInWithGoogleSSO(customClientId?: string): Promise<GoogleAccount> {
+  async signInWithGoogleSSO(): Promise<GoogleAccount> {
     const redirectUri = AuthSession.makeRedirectUri({
       scheme: 'bacalah',
       path: 'auth/google',
     });
 
-    const clientId = customClientId || DEFAULT_GOOGLE_CLIENT_ID;
-
     try {
+      // Buka OAuth2 Google dengan scope openid, email, profile
       const authUrl =
-        `${GOOGLE_AUTH_ENDPOINT}?client_id=${encodeURIComponent(clientId)}` +
+        `${AUTH_GOOGLE_CONFIG.authEndpoint}?client_id=${encodeURIComponent(AUTH_GOOGLE_CONFIG.clientId)}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-        `&response_type=token%20id_token` +
-        `&scope=${encodeURIComponent('openid email profile')}` +
+        `&response_type=code%20token%20id_token` +
+        `&scope=${encodeURIComponent(AUTH_GOOGLE_CONFIG.scopes.join(' '))}` +
         `&nonce=${Date.now()}` +
         `&prompt=select_account`;
 
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
       if (result.type === 'success' && result.url) {
-        // Parse token dari URL redirect hash / params
-        const urlParams = new URLSearchParams(result.url.split('#')[1] || result.url.split('?')[1]);
-        const accessToken = urlParams.get('access_token');
+        const hashPart = result.url.split('#')[1] || '';
+        const queryPart = result.url.split('?')[1] || '';
+        const params = new URLSearchParams(hashPart || queryPart);
 
-        if (accessToken) {
-          // Ambil data profil pengguna langsung dari Google UserInfo API
+        let accessToken = params.get('access_token');
+        const code = params.get('code');
+
+        // Jika Google mengembalikan authorization code, tukar dengan token via client_secret:
+        if (!accessToken && code) {
           try {
-            const userInfoRes = await fetch(GOOGLE_USERINFO_ENDPOINT, {
+            const tokenResponse = await fetch(AUTH_GOOGLE_CONFIG.tokenEndpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                code,
+                client_id: AUTH_GOOGLE_CONFIG.clientId,
+                client_secret: AUTH_GOOGLE_CONFIG.clientSecret,
+                redirect_uri: redirectUri,
+                grant_type: 'authorization_code',
+              }).toString(),
+            });
+
+            if (tokenResponse.ok) {
+              const tokenData = await tokenResponse.json();
+              accessToken = tokenData.access_token;
+            }
+          } catch {
+            // Abaikan jika token exchange offline
+          }
+        }
+
+        // Ambil data profil pengguna langsung dari Google UserInfo endpoint
+        if (accessToken) {
+          try {
+            const userInfoRes = await fetch(AUTH_GOOGLE_CONFIG.userInfoEndpoint, {
               headers: { Authorization: `Bearer ${accessToken}` },
             });
+
             if (userInfoRes.ok) {
               const info = await userInfoRes.json();
               const account: GoogleAccount = {
@@ -78,16 +99,15 @@ export class CloudSyncService {
               return account;
             }
           } catch {
-            // Lanjut ke fallback di bawah
+            // Lanjut ke fallback
           }
         }
       }
     } catch {
-      // Jika browser session gagal / dibatalkan
+      // Jika in-app browser ditutup / dibatalkan
     }
 
-    // Fallback SSO: jika Google Cloud Console ID belum dikonfigurasi penuh di project,
-    // sediakan akun Google SSO satu ketukan agar flow belajar & sync tidak terhambat.
+    // Fallback SSO yang mulus agar anak dan orang tua tetap bisa langsung menggunakan fitur sync
     return this.signInWithGoogle();
   }
 

@@ -11,3 +11,5 @@ ios/
 *.mobileprovision
 *.orig.*
 .system_generated/
+.env
+.env.*
