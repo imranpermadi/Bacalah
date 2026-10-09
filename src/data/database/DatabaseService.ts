@@ -56,6 +56,75 @@ const MIGRATIONS: string[][] = [
      );`,
     `INSERT OR IGNORE INTO cloud_sync (id) VALUES (1);`,
   ],
+  // v4: Multi-profil anak, Game Progress (Continue Soal 1-30), & Leveling Bertahap
+  [
+    `CREATE TABLE IF NOT EXISTS child_profiles (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       user_id TEXT,
+       name TEXT NOT NULL DEFAULT 'Teman Cici',
+       birth_date TEXT,
+       avatar TEXT NOT NULL DEFAULT '🐱',
+       stars INTEGER NOT NULL DEFAULT 0,
+       mode TEXT NOT NULL DEFAULT 'pemula',
+       unlocked_level INTEGER NOT NULL DEFAULT 1,
+       created_at INTEGER NOT NULL
+     );`,
+    `CREATE TABLE IF NOT EXISTS active_session (
+       id INTEGER PRIMARY KEY CHECK (id = 1),
+       active_profile_id INTEGER,
+       user_id TEXT,
+       is_logged_in INTEGER NOT NULL DEFAULT 0
+     );`,
+    `INSERT OR IGNORE INTO active_session (id, active_profile_id, is_logged_in) VALUES (1, 1, 0);`,
+    `CREATE TABLE IF NOT EXISTS game_progress (
+       profile_id INTEGER NOT NULL,
+       game_id TEXT NOT NULL,
+       current_round INTEGER NOT NULL DEFAULT 0,
+       score INTEGER NOT NULL DEFAULT 0,
+       completed_questions TEXT NOT NULL DEFAULT '[]',
+       last_played_at INTEGER NOT NULL,
+       PRIMARY KEY (profile_id, game_id)
+     );`,
+    `CREATE TABLE IF NOT EXISTS profile_letter_stats (
+       profile_id INTEGER NOT NULL,
+       letter TEXT NOT NULL,
+       correct_count INTEGER NOT NULL DEFAULT 0,
+       wrong_count INTEGER NOT NULL DEFAULT 0,
+       attempts INTEGER NOT NULL DEFAULT 0,
+       streak INTEGER NOT NULL DEFAULT 0,
+       last_seen INTEGER,
+       PRIMARY KEY (profile_id, letter)
+     );`,
+    `CREATE TABLE IF NOT EXISTS profile_level_progress (
+       profile_id INTEGER NOT NULL,
+       level INTEGER NOT NULL,
+       best_stars INTEGER NOT NULL DEFAULT 0,
+       sessions INTEGER NOT NULL DEFAULT 0,
+       unlocked INTEGER NOT NULL DEFAULT 0,
+       PRIMARY KEY (profile_id, level)
+     );`,
+    `CREATE TABLE IF NOT EXISTS profile_confusions (
+       profile_id INTEGER NOT NULL,
+       expected TEXT NOT NULL,
+       pressed TEXT NOT NULL,
+       times INTEGER NOT NULL DEFAULT 0,
+       PRIMARY KEY (profile_id, expected, pressed)
+     );`,
+    `CREATE TABLE IF NOT EXISTS profile_voice_scores (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       profile_id INTEGER NOT NULL,
+       target TEXT NOT NULL,
+       transcript TEXT NOT NULL,
+       similarity REAL NOT NULL,
+       stars INTEGER NOT NULL,
+       created_at INTEGER NOT NULL
+     );`,
+    // Migrasi profil awal jika belum ada
+    `INSERT OR IGNORE INTO child_profiles (id, name, avatar, stars, mode, unlocked_level, created_at)
+     SELECT 1, name, '🐱', stars, mode, 1, 1700000000000 FROM profile WHERE id = 1;`,
+    `INSERT OR IGNORE INTO profile_level_progress (profile_id, level, best_stars, sessions, unlocked)
+     VALUES (1, 1, 0, 0, 1), (1, 2, 0, 0, 0), (1, 3, 0, 0, 0), (1, 4, 0, 0, 0), (1, 5, 0, 0, 0), (1, 6, 0, 0, 0);`,
+  ],
 ];
 
 export class DatabaseService {

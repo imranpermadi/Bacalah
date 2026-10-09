@@ -7,7 +7,7 @@ import { BigButton } from '../../components/common/ui';
 import { GameShell, useGameSession } from '../GameShell';
 import { useLetterRound } from '../useLetterRound';
 
-const TRACK = 6;
+const TRACK = 30;
 
 function Cici({ pos }: { pos: number }) {
   const a = useAnimatedStyle(() => ({ left: withSpring(`${(pos / TRACK) * 88}%` as any, { damping: 8 }) }));
@@ -16,7 +16,7 @@ function Cici({ pos }: { pos: number }) {
 
 /** 🏃 Bantu Cici melompati teratai berhuruf yang benar untuk menyeberangi kolam. */
 export function LompatTeratai({ onExit }: { onExit: () => void }) {
-  const session = useGameSession(TRACK);
+  const session = useGameSession('teratai', TRACK);
   const { q, answer, hear, wobble } = useLetterRound(session, 3);
 
   return (

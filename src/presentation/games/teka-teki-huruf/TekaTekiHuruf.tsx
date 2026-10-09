@@ -14,7 +14,7 @@ import { Dimensions } from 'react-native';
 
 /** 🧩 Isi huruf yang hilang pada kata bergambar. */
 export function TekaTekiHuruf({ onExit }: { onExit: () => void }) {
-  const session = useGameSession(6);
+  const session = useGameSession('teka', 30);
   const recordLetter = useAppStore((s) => s.recordLetter);
   const [word, setWord] = useState<WordItem>(() => pickWord(1));
   const [hole, setHole] = useState(0);

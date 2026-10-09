@@ -23,10 +23,11 @@ import { VoiceResult } from '../../../core/sound/VoiceEvaluatorService';
 import { useAppStore } from '../../stores/useAppStore';
 
 const { width } = Dimensions.get('window');
-const SESSION_SIZE = 5;
+const SESSION_SIZE = 30; // Minimal 30 varian soal per level
 
 export function DikteKuisScreen() {
   const profile = useAppStore((s) => s.profile);
+  const levels = useAppStore((s) => s.levels);
   const weights = useAppStore((s) => s.weights);
   const recordLetter = useAppStore((s) => s.recordLetter);
   const finishSession = useAppStore((s) => s.finishSession);
@@ -53,7 +54,14 @@ export function DikteKuisScreen() {
 
   // End of session celebration
   const [isSessionComplete, setIsSessionComplete] = useState(false);
+  const [unlockedNextSuccess, setUnlockedNextSuccess] = useState(false);
   const sessionSaved = useRef(false);
+
+  const isLevelUnlocked = (lvlNum: number) => {
+    if (lvlNum === 1) return true;
+    const item = levels.find((l) => l.level === lvlNum);
+    return item ? item.unlocked : (profile.unlockedLevel >= lvlNum);
+  };
 
   // Load exercises when level changes or after restarting
   const loadExercises = (lvl: number) => {
@@ -64,6 +72,7 @@ export function DikteKuisScreen() {
     setMistakesThisQuestion(0);
     setTotalCorrectFirstTry(0);
     setIsSessionComplete(false);
+    setUnlockedNextSuccess(false);
     sessionSaved.current = false;
     setCiciMood('idle');
     setCiciMessage('Ayo mulai! Tekan tombol Dengar Cici bila perlu! 🐱');
@@ -137,14 +146,23 @@ export function DikteKuisScreen() {
     }
   };
 
-  const handleCompleteSession = () => {
+  const handleCompleteSession = async () => {
     setIsSessionComplete(true);
-    const starsWon =
-      totalCorrectFirstTry >= 4 ? 3 : totalCorrectFirstTry >= 2 ? 2 : 1;
+    const total = exercises.length || 1;
+    const accuracy = (totalCorrectFirstTry / total) * 100;
+    // Opsi A: minimal akurasi 80%
+    const passed = accuracy >= 80;
+    const starsWon = accuracy >= 90 ? 3 : accuracy >= 80 ? 2 : 1;
+
     if (!sessionSaved.current) {
       sessionSaved.current = true;
-      finishSession(activeLevel, starsWon);
-      container.sound.sfx('clap');
+      const res = await finishSession(activeLevel, starsWon);
+      setUnlockedNextSuccess(res.unlockedNext);
+      if (passed) {
+        container.sound.sfx('clap');
+      } else {
+        container.sound.sfx('boop');
+      }
     }
   };
 
@@ -152,7 +170,6 @@ export function DikteKuisScreen() {
   const handleVoiceResult = (res: VoiceResult) => {
     if (!currentExercise || isSessionComplete) return;
     if (res.similarity >= 0.55 || res.stars >= 2) {
-      // Tepat atau mendekati: langsung anggap benar
       for (const ch of currentExercise.target) {
         recordLetter(ch, true);
       }
@@ -185,16 +202,19 @@ export function DikteKuisScreen() {
     if (profile.mode === 'mandiri') {
       return []; // empty array means full 26 letters A-Z
     }
-    // Pemula mode: 3-4 options around the current expected letter
     const targetChar = currentExercise.target[typed.length] || currentExercise.target[0];
     return DictationGenerator.choices(targetChar, 4, weights);
   }, [currentExercise, typed, profile.mode, weights]);
 
-  // Visual hint: highlight expected letter if kid struggled twice
   const highlightChar =
     mistakesThisQuestion >= 2 && currentExercise
       ? currentExercise.target[typed.length]
       : null;
+
+  const totalQuestions = exercises.length || SESSION_SIZE;
+  const accuracyPercent = Math.round((totalCorrectFirstTry / totalQuestions) * 100);
+  const isPassed = accuracyPercent >= 80;
+  const earnedStars = accuracyPercent >= 90 ? 3 : accuracyPercent >= 80 ? 2 : 1;
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -247,105 +267,134 @@ export function DikteKuisScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.levelBar}
         >
-          {levelMeta.slice(0, 5).map((l) => {
+          {levelMeta.map((l) => {
             const isSelected = activeLevel === l.level;
+            const unlocked = isLevelUnlocked(l.level);
             return (
               <Pressable
                 key={l.level}
                 onPress={() => {
+                  if (!unlocked) {
+                    container.sound.sfx('boop');
+                    setCiciMood('hint');
+                    setCiciMessage(
+                      `Level ${l.level} masih terkunci 🔒! Selesaikan Level ${l.level - 1} dengan minimal 80% akurasi dulu ya!`
+                    );
+                    return;
+                  }
                   setActiveLevel(l.level);
                   container.sound.sfx('pop');
                 }}
                 style={[
                   styles.levelPill,
-                  { backgroundColor: isSelected ? l.color : '#FFFFFF' },
+                  {
+                    backgroundColor: isSelected
+                      ? l.color
+                      : unlocked
+                      ? '#FFFFFF'
+                      : '#E0DDD2',
+                    opacity: unlocked ? 1 : 0.6,
+                  },
                   raised(isSelected ? colors.sunnyDark : colors.line),
                 ]}
               >
-                <Text style={styles.levelPillEmoji}>{l.emoji}</Text>
-                <Text style={styles.levelPillText}>L{l.level}: {l.title}</Text>
+                <Text style={styles.levelPillEmoji}>{unlocked ? l.emoji : '🔒'}</Text>
+                <Text style={styles.levelPillText}>
+                  L{l.level} {l.title.split(' ')[0]}
+                </Text>
               </Pressable>
             );
           })}
         </ScrollView>
       </View>
 
+      {/* Main Arena / Completion State */}
       {isSessionComplete ? (
         <View style={styles.completeBox}>
-          <Text style={styles.completeTitle}>Sesi Dikte Selesai! 🎉</Text>
-          <Stars
-            count={
-              totalCorrectFirstTry >= 4 ? 3 : totalCorrectFirstTry >= 2 ? 2 : 1
-            }
-            size={58}
-          />
+          {isPassed && <Celebration visible />}
+          <Text style={styles.completeTitle}>
+            {isPassed ? 'Luar Biasa, Kamu Lulus! 🎉' : 'Ayo Latihan Lagi! 🐣'}
+          </Text>
+
+          <Stars count={earnedStars} size={54} />
+
           <Text style={styles.completeSubtitle}>
-            Tepat tanpa salah: {totalCorrectFirstTry} dari {SESSION_SIZE} soal!
+            Akurasi: {accuracyPercent}% ({totalCorrectFirstTry} dari {totalQuestions} Soal Benar)
           </Text>
+
           <Text style={styles.completeSub2}>
-            Hebat! Huruf yang kamu latih otomatis tercatat di Rapor Alfabet.
+            {isPassed
+              ? activeLevel < 6
+                ? `Selamat! Level ${activeLevel + 1} sekarang sudah TERBUKA untukmu! 🏆`
+                : 'Hebat sekali! Kamu telah menuntaskan seluruh level membaca! 🌟'
+              : 'Syarat lulus membuka level berikutnya adalah minimal 80% akurasi (2 Bintang). Ayo ulangi lagi ya! Cici selalu menyemangatimu! 💛'}
           </Text>
+
           <View style={styles.completeBtnRow}>
+            {isPassed && activeLevel < 6 ? (
+              <BigButton
+                label={`🚀 Lanjut ke Level ${activeLevel + 1}`}
+                color={colors.mint}
+                edge={colors.mintDark}
+                onPress={() => {
+                  setActiveLevel(activeLevel + 1);
+                }}
+              />
+            ) : null}
+
             <BigButton
-              label="🔁 Latih Lagi Level Ini"
-              color={colors.mint}
-              edge={colors.mintDark}
+              label={`🔁 Ulangi Level ${activeLevel}`}
+              color={colors.sunny}
+              edge={colors.sunnyDark}
               onPress={() => loadExercises(activeLevel)}
             />
-            {activeLevel < 5 && (
-              <BigButton
-                label="Lanjut ke Level Berikutnya 🚀"
-                color={colors.sunny}
-                edge={colors.sunnyDark}
-                onPress={() => setActiveLevel((lvl) => lvl + 1)}
-              />
-            )}
           </View>
-          <Celebration visible />
         </View>
       ) : (
         <ScrollView
           style={styles.scrollWrapper}
           contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Cici Mascot Bubble */}
+          {/* Mascot Feedback Bubble */}
           <MascotCici
             mood={ciciMood}
             moodToken={ciciMoodToken}
             message={ciciMessage}
-            size={72}
+            size={70}
           />
 
-          {/* Exercise Arena */}
+          {/* Question Hero Arena */}
           {currentExercise ? (
             <View style={styles.arenaCard}>
               <View style={styles.progressRow}>
                 <Text style={styles.progressText}>
-                  Soal {currentIndex + 1} dari {exercises.length}
+                  Soal {currentIndex + 1} dari {totalQuestions}
                 </Text>
-                {currentExercise.emoji ? (
-                  <Text style={{ fontSize: 32 }}>{currentExercise.emoji}</Text>
-                ) : null}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: 14 }}>⭐</Text>
+                  <Text style={styles.progressText}>{totalCorrectFirstTry} Benar</Text>
+                </View>
               </View>
 
-              {/* Blinking Interactive Input Slots */}
-              <View style={styles.slotContainer}>
-                <DictationInputSlot
-                  target={currentExercise.target}
-                  typed={typed}
-                  wobbleToken={slotWobbleToken}
-                />
-              </View>
-
-              {/* Hear and Voice Mic Section */}
               <View style={styles.actionSection}>
                 <HearButtons
                   text={currentExercise.speakText}
                   slowParts={currentExercise.slowParts}
                 />
-                <View style={{ marginTop: 8 }}>
+
+                <View style={styles.slotContainer}>
+                  <DictationInputSlot
+                    target={currentExercise.target}
+                    typed={typed}
+                    wobbleToken={slotWobbleToken}
+                    emoji={currentExercise.emoji}
+                  />
+                </View>
+
+                {/* Voice Input Integration */}
+                <View style={{ marginTop: 2 }}>
                   <VoiceMicButton
                     target={currentExercise.target}
                     speakText={currentExercise.speakText}
@@ -459,7 +508,7 @@ const styles = StyleSheet.create({
   },
   completeTitle: {
     fontFamily: fonts.black,
-    fontSize: 32,
+    fontSize: 28,
     color: colors.ink,
     textAlign: 'center',
   },
@@ -471,11 +520,12 @@ const styles = StyleSheet.create({
   },
   completeSub2: {
     fontFamily: fonts.regular,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.inkSoft,
     textAlign: 'center',
     marginBottom: 16,
+    lineHeight: 20,
+    paddingHorizontal: 12,
   },
   completeBtnRow: { width: '100%', gap: 12 },
 });
-

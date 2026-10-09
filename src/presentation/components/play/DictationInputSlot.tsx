@@ -36,17 +36,32 @@ function Slot({ char, active, wobble }: { char: string; active: boolean; wobble:
   );
 }
 
-export function DictationInputSlot({ target, typed, wobbleToken }: { target: string; typed: string; wobbleToken: number }) {
+export function DictationInputSlot({
+  target,
+  typed,
+  wobbleToken,
+  emoji,
+}: {
+  target: string;
+  typed: string;
+  wobbleToken: number;
+  emoji?: string;
+}) {
   return (
-    <View style={styles.row}>
-      {target.split('').map((_, i) => (
-        <Slot key={i} char={typed[i] ?? ''} active={i === typed.length} wobble={wobbleToken} />
-      ))}
+    <View style={styles.container}>
+      {emoji ? <Text style={styles.emoji}>{emoji}</Text> : null}
+      <View style={styles.row}>
+        {target.split('').map((_, i) => (
+          <Slot key={i} char={typed[i] ?? ''} active={i === typed.length} wobble={wobbleToken} />
+        ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: { alignItems: 'center', gap: 6 },
+  emoji: { fontSize: 44, textAlign: 'center' },
   row: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 8 },
   slot: {
     width: 52,

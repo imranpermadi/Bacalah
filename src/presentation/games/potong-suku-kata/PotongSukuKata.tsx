@@ -22,7 +22,7 @@ const boundaries = (w: WordItem) => {
 
 /** 🍕 Potong kata menjadi suku kata yang benar dengan mengetuk celah di antara huruf. */
 export function PotongSukuKata({ onExit }: { onExit: () => void }) {
-  const session = useGameSession(5);
+  const session = useGameSession('potong', 30);
   const recordLetter = useAppStore((s) => s.recordLetter);
   const [word, setWord] = useState<WordItem>(() => pickWord());
   const [cut, setCut] = useState<number[]>([]);

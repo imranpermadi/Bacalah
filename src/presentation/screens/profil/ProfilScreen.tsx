@@ -46,6 +46,8 @@ export function ProfilScreen() {
   const [googleEmailInput, setGoogleEmailInput] = useState('');
   const [googleNameInput, setGoogleNameInput] = useState('');
 
+  const unselectProfile = useAppStore((s) => s.unselectProfile);
+
   // Diagnosis Penguasaan Bahasa
   const diagnosis = LanguageMasteryService.diagnose(stats, levels, confusions, voice);
 
@@ -96,16 +98,33 @@ export function ProfilScreen() {
       >
         {/* Child Profile Card */}
         <View style={styles.profileHeader}>
-          <Text style={styles.avatar}>🐱</Text>
+          <Text style={styles.avatar}>{profile.avatar || '🐱'}</Text>
           <View style={styles.profileInfo}>
             <Text style={styles.name}>{profile.name}</Text>
+            {profile.birthDate ? (
+              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: colors.inkSoft }}>
+                🎂 Lahir: {profile.birthDate}
+              </Text>
+            ) : null}
             <View style={styles.starRow}>
               <Text style={{ fontSize: 24 }}>⭐</Text>
               <Text style={styles.starCount}>{profile.stars} Bintang</Text>
+              <Text style={[styles.modeBadge, { marginLeft: 8 }]}>
+                Level {profile.unlockedLevel || 1} 🏆
+              </Text>
             </View>
-            <Text style={styles.modeBadge}>
-              Mode: {profile.mode === 'pemula' ? '🐣 Pemula (4 Pilihan)' : '🦁 Mandiri (A–Z Lengkap)'}
-            </Text>
+            <View style={{ marginTop: 8 }}>
+              <BigButton
+                label="👥 Ganti Profil / Tambah Anak"
+                small
+                color={colors.sunny}
+                edge={colors.sunnyDark}
+                onPress={() => {
+                  container.sound.sfx('pop');
+                  unselectProfile();
+                }}
+              />
+            </View>
           </View>
         </View>
 

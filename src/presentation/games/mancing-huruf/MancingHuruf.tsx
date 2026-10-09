@@ -8,7 +8,7 @@ import { useLetterRound } from '../useLetterRound';
 
 /** 🎣 Cici memancing huruf yang sesuai dengan suara yang diperdengarkan. */
 export function MancingHuruf({ onExit }: { onExit: () => void }) {
-  const session = useGameSession(6);
+  const session = useGameSession('mancing', 30);
   const { q, answer, hear, wobble, info } = useLetterRound(session, 4);
   const [caught, setCaught] = React.useState<string | null>(null);
   React.useEffect(() => setCaught(null), [session.round]);

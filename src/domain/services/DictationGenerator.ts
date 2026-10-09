@@ -1,40 +1,65 @@
 import { ALPHABET, CONFUSABLE, LETTERS, letterInfo } from '../../data/content/alphabet';
-import { OPEN_SYLLABLES, wordsForLevel } from '../../data/content/curriculum';
+import { OPEN_SYLLABLES, SENTENCES, wordsForLevel } from '../../data/content/curriculum';
 import { DictationExercise } from '../entities/DictationExercise';
 import { AlphabetMasteryEngine, LetterWeights } from './AlphabetMasteryEngine';
 
 const weightOfText = (text: string, weights: LetterWeights) =>
-  text.split('').reduce((a, c) => a + (weights[c] ?? 1), 0) / text.length;
+  text.split('').reduce((a, c) => a + (weights[c] ?? 1), 0) / (text.length || 1);
 
 let counter = 0;
 
 export const DictationGenerator = {
-  /** Soal dikte level 1–5, dipilih berbobot sesuai huruf lemah anak. */
+  /** Soal dikte level 1–6 (minimal 30 soal per level), dipilih berbobot sesuai huruf lemah anak. */
   generate(level: number, count: number, weights: LetterWeights): DictationExercise[] {
     let pool: DictationExercise[];
     if (level === 1) {
-      pool = ALPHABET.map((a) => ({
+      // 26 huruf + 10 variasi fonik konsonan & vokal penting (total 36 item)
+      const basePool: DictationExercise[] = ALPHABET.map((a) => ({
         id: `L-${a.letter}`,
-        kind: 'letter',
+        kind: 'letter' as const,
         level: 1,
         target: a.letter,
         speakText: a.speak,
         slowParts: [a.speak],
         emoji: a.emoji,
       }));
+      // Ekstra varian fonik agar minimal 30 soal unik
+      const extraVowels = ['A', 'I', 'U', 'E', 'O', 'B', 'M', 'S', 'T', 'N'].map((char) => {
+        const info = letterInfo(char);
+        return {
+          id: `L-extra-${char}`,
+          kind: 'letter' as const,
+          level: 1,
+          target: char,
+          speakText: info.speak,
+          slowParts: [info.speak],
+          emoji: info.emoji,
+        };
+      });
+      pool = [...basePool, ...extraVowels];
     } else if (level === 2) {
       pool = OPEN_SYLLABLES.map((s) => ({
         id: `S-${s}`,
-        kind: 'syllable',
+        kind: 'syllable' as const,
         level: 2,
         target: s,
         speakText: s.toLowerCase(),
         slowParts: s.split('').map((c) => letterInfo(c).speak),
       }));
+    } else if (level === 6) {
+      pool = SENTENCES.map((st) => ({
+        id: `ST-${st.id}`,
+        kind: 'sentence' as const,
+        level: 6,
+        target: st.answer.toUpperCase(),
+        speakText: st.text,
+        slowParts: [st.question],
+        emoji: st.emoji,
+      }));
     } else {
       pool = wordsForLevel(level).map((w) => ({
         id: `W-${w.word}`,
-        kind: 'word',
+        kind: 'word' as const,
         level,
         target: w.word,
         speakText: w.word.toLowerCase(),
@@ -42,7 +67,9 @@ export const DictationGenerator = {
         emoji: w.emoji,
       }));
     }
-    return AlphabetMasteryEngine.weightedSample(pool, count, (e) => weightOfText(e.target, weights)).map(
+
+    const actualCount = Math.min(count, pool.length);
+    return AlphabetMasteryEngine.weightedSample(pool, actualCount, (e) => weightOfText(e.target, weights)).map(
       (e) => ({ ...e, id: `${e.id}-${counter++}` })
     );
   },
@@ -72,4 +99,3 @@ export const DictationGenerator = {
     return { target, options: DictationGenerator.choices(target, optionCount, weights) };
   },
 };
-

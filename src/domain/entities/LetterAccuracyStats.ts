@@ -11,15 +11,30 @@ export type MasteryLabel = 'baru' | 'belajar' | 'hampir' | 'hebat';
 
 export interface ChildProfile {
   id: number;
+  userId?: string;
   name: string;
+  birthDate?: string;
+  avatar: string;
   stars: number;
   mode: 'pemula' | 'mandiri';
+  unlockedLevel: number;
+  createdAt: number;
+}
+
+export interface GameProgressState {
+  profileId: number;
+  gameId: string;
+  currentRound: number;
+  score: number;
+  completedQuestionIds: string[];
+  lastPlayedAt: number;
 }
 
 export interface LevelProgress {
   level: number;
   bestStars: number;
   sessions: number;
+  unlocked: boolean;
 }
 
 export interface VoiceStats {

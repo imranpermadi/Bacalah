@@ -33,7 +33,7 @@ export function GamesScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenTitle sub="8 Mini Games Seru untuk Melatih Seluruh Huruf A–Z!">
+      <ScreenTitle sub="11 Mini Games Seru dengan 30 Soal & Fitur Lanjut Permainan!">
         Arena Mini Games 🎮
       </ScreenTitle>
 

@@ -8,7 +8,7 @@ import { useLetterRound } from '../useLetterRound';
 
 /** 📦 Masukkan surat huruf kecil ke kotak pos huruf kapital yang tepat (b ≠ d, p ≠ q!). */
 export function KotakPosHuruf({ onExit }: { onExit: () => void }) {
-  const session = useGameSession(6);
+  const session = useGameSession('pos', 30);
   const { q, answer, hear, wobble, locked } = useLetterRound(session, 3);
 
   return (

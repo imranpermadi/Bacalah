@@ -44,6 +44,15 @@ export function BelajarScreen() {
     }
   };
 
+  const levels = useAppStore((s) => s.levels);
+  const profile = useAppStore((s) => s.profile);
+
+  const isLevelUnlocked = (lvlNum: number) => {
+    if (lvlNum === 1) return true;
+    const item = levels.find((l) => l.level === lvlNum);
+    return item ? item.unlocked : (profile.unlockedLevel >= lvlNum);
+  };
+
   const renderLevelSelector = () => (
     <ScrollView
       horizontal
@@ -52,10 +61,19 @@ export function BelajarScreen() {
     >
       {levelMeta.map((lvl) => {
         const isSelected = activeLevel === lvl.level;
+        const unlocked = isLevelUnlocked(lvl.level);
         return (
           <Pressable
             key={lvl.level}
             onPress={() => {
+              if (!unlocked) {
+                container.sound.sfx('boop');
+                setCiciMood('hint');
+                setCiciMsg(
+                  `Level ${lvl.level} masih terkunci 🔒! Selesaikan kuis dikte Level ${lvl.level - 1} dengan minimal 2 bintang (80%) dulu ya! ⭐`
+                );
+                return;
+              }
               setActiveLevel(lvl.level);
               setCiciMood('talk');
               setCiciMsg(`Ayo belajar Level ${lvl.level}: ${lvl.title}! 🚀`);
@@ -63,15 +81,22 @@ export function BelajarScreen() {
             }}
             style={[
               styles.levelTab,
-              { backgroundColor: isSelected ? lvl.color : '#FFFFFF' },
+              {
+                backgroundColor: isSelected
+                  ? lvl.color
+                  : unlocked
+                  ? '#FFFFFF'
+                  : '#E8E4D9',
+                opacity: unlocked ? 1 : 0.7,
+              },
               raised(isSelected ? colors.sunnyDark : colors.line),
             ]}
           >
-            <Text style={styles.levelEmoji}>{lvl.emoji}</Text>
+            <Text style={styles.levelEmoji}>{unlocked ? lvl.emoji : '🔒'}</Text>
             <Text
               style={[
                 styles.levelText,
-                { color: isSelected ? colors.ink : colors.inkSoft },
+                { color: isSelected ? colors.ink : unlocked ? colors.inkSoft : '#9E9E9E' },
               ]}
             >
               L{lvl.level}

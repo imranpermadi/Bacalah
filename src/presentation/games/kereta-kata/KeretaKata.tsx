@@ -11,7 +11,7 @@ import { pickWord } from '../useLetterRound';
 
 /** 🚂 Susun gerbong suku kata sesuai kata yang diucapkan Cici. */
 export function KeretaKata({ onExit }: { onExit: () => void }) {
-  const session = useGameSession(5);
+  const session = useGameSession('kereta', 30);
   const recordLetter = useAppStore((s) => s.recordLetter);
   const [word, setWord] = useState<WordItem>(() => pickWord());
   const [placed, setPlaced] = useState<number[]>([]);

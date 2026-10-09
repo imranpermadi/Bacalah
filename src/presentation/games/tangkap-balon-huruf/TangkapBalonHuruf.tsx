@@ -8,7 +8,7 @@ import { useLetterRound } from '../useLetterRound';
 
 /** 🎈 Cici menyebut bunyi huruf, anak memecahkan balon huruf yang cocok. */
 export function TangkapBalonHuruf({ onExit }: { onExit: () => void }) {
-  const session = useGameSession(6);
+  const session = useGameSession('balon', 30);
   const { q, answer, hear, wobble } = useLetterRound(session, 5);
   const [popped, setPopped] = useState<string | null>(null);
 

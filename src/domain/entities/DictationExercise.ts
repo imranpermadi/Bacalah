@@ -1,4 +1,4 @@
-export type DictationKind = 'letter' | 'syllable' | 'word';
+export type DictationKind = 'letter' | 'syllable' | 'word' | 'sentence';
 
 export interface DictationExercise {
   id: string;

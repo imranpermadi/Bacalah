@@ -32,11 +32,12 @@ export const bubblePalette: [string, string][] = [
 
 export const fonts = {
   regular: 'Nunito_700Bold',
+  bold: 'Nunito_700Bold',
   heavy: 'Nunito_800ExtraBold',
   black: 'Nunito_900Black',
 };
 
-export const radius = { sm: 12, md: 20, lg: 28, pill: 999 };
+export const radius = { sm: 12, md: 20, lg: 28, xl: 32, pill: 999 };
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
 
 /** Gaya tombol timbul 3D taktil. */

@@ -10,11 +10,13 @@ const W = (level: number, emoji: string, ...syllables: string[]): WordItem => ({
 const CONSONANTS_FOR_SYLLABLES = ['B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'R', 'S', 'T', 'V', 'W', 'Y', 'Z'];
 const VOWEL_ORDER = ['A', 'I', 'U', 'E', 'O'];
 
-/** Level 2: suku kata terbuka 2 huruf (BA, BI, BU, BE, BO, CA, ...). */
+/** Level 2: suku kata terbuka 2 huruf (BA, BI, BU, BE, BO, CA, ...). Total 95 suku kata */
 export const OPEN_SYLLABLES: string[] = CONSONANTS_FOR_SYLLABLES.flatMap((c) => VOWEL_ORDER.map((v) => c + v));
 
 export const WORDS: WordItem[] = [
-  // Level 3 — 2 suku kata terbuka
+  // ==========================================
+  // Level 3 — 2 Suku Kata Terbuka (Minimal 35 Soal)
+  // ==========================================
   W(3, '📕', 'BU', 'KU'),
   W(3, '⚽', 'BO', 'LA'),
   W(3, '🧹', 'SA', 'PU'),
@@ -30,7 +32,31 @@ export const WORDS: WordItem[] = [
   W(3, '🦷', 'GI', 'GI'),
   W(3, '🎲', 'DA', 'DU'),
   W(3, '👟', 'SE', 'PA', 'TU'),
-  // Level 4 — suku kata tertutup
+  W(3, '🎀', 'PI', 'TA'),
+  W(3, '👕', 'BA', 'JU'),
+  W(3, '🪞', 'KA', 'CA'),
+  W(3, '🪢', 'TA', 'LI'),
+  W(3, '🧼', 'BU', 'SA'),
+  W(3, '🔨', 'PA', 'LU'),
+  W(3, '🍒', 'CE', 'RI'),
+  W(3, '🖐️', 'JA', 'RI'),
+  W(3, '🦌', 'RU', 'SA'),
+  W(3, '🌍', 'BU', 'MI'),
+  W(3, '🧂', 'GU', 'LA'),
+  W(3, '🍯', 'MA', 'DU'),
+  W(3, '🪵', 'KA', 'YU'),
+  W(3, '🥛', 'SU', 'SU'),
+  W(3, '🪨', 'BA', 'TU'),
+  W(3, '🎃', 'LA', 'BU'),
+  W(3, '🚰', 'PI', 'PA'),
+  W(3, '🐒', 'KE', 'RA'),
+  W(3, '🌶️', 'CA', 'BE'),
+  W(3, '🍲', 'SO', 'TO'),
+  W(3, '📷', 'FO', 'TO'),
+
+  // ==========================================
+  // Level 4 — Suku Kata Tertutup (Minimal 35 Soal)
+  // ==========================================
   W(4, '🍽️', 'MA', 'KAN'),
   W(4, '🏠', 'RU', 'MAH'),
   W(4, '🚗', 'MO', 'BIL'),
@@ -41,7 +67,36 @@ export const WORDS: WordItem[] = [
   W(4, '🚀', 'RO', 'KET'),
   W(4, '🥚', 'TE', 'LUR'),
   W(4, '🍊', 'JE', 'RUK'),
-  // Level 5 — NG, NY, diftong AU/AI
+  W(4, '🌧️', 'HU', 'JAN'),
+  W(4, '🐔', 'A', 'YAM'),
+  W(4, '🌳', 'PO', 'HON'),
+  W(4, '🚢', 'KA', 'PAL'),
+  W(4, '🏖️', 'PA', 'SIR'),
+  W(4, '🛏️', 'KA', 'SUR'),
+  W(4, '⬛', 'HI', 'TAM'),
+  W(4, '🟥', 'ME', 'RAH'),
+  W(4, '🍾', 'BO', 'TOL'),
+  W(4, '🥄', 'SEN', 'DOK'),
+  W(4, '🥛', 'GE', 'LAS'),
+  W(4, '🚧', 'PA', 'GAR'),
+  W(4, '🍄', 'JA', 'MUR'),
+  W(4, '🥦', 'SA', 'YUR'),
+  W(4, '🐱', 'KU', 'CING'),
+  W(4, '🦆', 'BE', 'BEK'),
+  W(4, '🐜', 'SE', 'MUT'),
+  W(4, '🐦', 'BU', 'RUNG'),
+  W(4, '🪡', 'JA', 'RUM'),
+  W(4, '🏫', 'KE', 'LAS'),
+  W(4, '🥇', 'E', 'MAS'),
+  W(4, '🦐', 'U', 'DANG'),
+  W(4, '🐰', 'KE', 'LIN', 'CI'),
+  W(4, '🏊', 'KO', 'LAM'),
+  W(4, '☁️', 'KA', 'BUT'),
+  W(4, '☁️', 'KA', 'PAS'),
+
+  // ==========================================
+  // Level 5 — NG, NY, Diftong AU/AI/OI (Minimal 35 Soal)
+  // ==========================================
   W(5, '🌸', 'BU', 'NGA'),
   W(5, '🦟', 'NYA', 'MUK'),
   W(5, '🐃', 'KER', 'BAU'),
@@ -53,10 +108,37 @@ export const WORDS: WordItem[] = [
   W(5, '🐒', 'MO', 'NYET'),
   W(5, '🐦', 'BU', 'RUNG'),
   W(5, '🏝️', 'PU', 'LAU'),
+  W(5, '⛓️', 'RAN', 'TAI'),
+  W(5, '🌊', 'SUN', 'GAI'),
+  W(5, '🏞️', 'DA', 'NAU'),
+  W(5, '🏖️', 'PAN', 'TAI'),
+  W(5, '🦗', 'CA', 'PUNG'),
+  W(5, '🦝', 'MU', 'SANG'),
+  W(5, '🦐', 'U', 'DANG'),
+  W(5, '🐚', 'KE', 'RANG'),
+  W(5, '🧅', 'BA', 'WANG'),
+  W(5, '🦵', 'PIN', 'CANG'),
+  W(5, '🔘', 'KAN', 'CING'),
+  W(5, '🔔', 'LON', 'CENG'),
+  W(5, '🎭', 'WA', 'YANG'),
+  W(5, '🦌', 'KAN', 'CIL'),
+  W(5, '😊', 'SE', 'NYUM'),
+  W(5, '🌿', 'KUN', 'YIT'),
+  W(5, '🎶', 'NYA', 'NYI'),
+  W(5, '🧣', 'SYAL'),
+  W(5, '🥥', 'KE', 'LA', 'PA'),
+  W(5, '☕', 'CANG', 'KIR'),
+  W(5, '🧱', 'DIN', 'DING'),
+  W(5, '✂️', 'GUN', 'TING'),
+  W(5, '🪵', 'BA', 'TANG'),
+  W(5, '⛰️', 'GU', 'NUNG'),
 ];
 
 export const wordsForLevel = (level: number) => WORDS.filter((w) => w.level === level);
 
+// ==========================================
+// Level 6 — Kalimat Pendek Bergambar (Minimal 30 Soal)
+// ==========================================
 export const SENTENCES: ReadingSentence[] = [
   {
     id: 's1', text: 'Ibu masak nasi.', emoji: '👩‍🍳',
@@ -103,8 +185,151 @@ export const SENTENCES: ReadingSentence[] = [
   {
     id: 's8', text: 'Bulan terlihat di malam hari.', emoji: '🌙',
     question: 'Kapan bulan terlihat?',
-    choices: [{ label: 'malam', emoji: '🌃' }, { label: 'siang', emoji: '☀️' }],
+    choices: [{ label: 'malam', emoji: '🌃' }, { label: 'siang', emoji: '☀️' }, { label: 'pagi', emoji: '🌅' }],
     answer: 'malam',
   },
+  {
+    id: 's9', text: 'Gajah punya belalai panjang.', emoji: '🐘',
+    question: 'Hewan apa yang punya belalai?',
+    choices: [{ label: 'gajah', emoji: '🐘' }, { label: 'sapi', emoji: '🐄' }, { label: 'ayam', emoji: '🐔' }],
+    answer: 'gajah',
+  },
+  {
+    id: 's10', text: 'Adik pakai sepatu baru.', emoji: '👟',
+    question: 'Apa yang dipakai adik?',
+    choices: [{ label: 'sepatu', emoji: '👟' }, { label: 'topi', emoji: '🧢' }, { label: 'payung', emoji: '☂️' }],
+    answer: 'sepatu',
+  },
+  {
+    id: 's11', text: 'Ikan berenang di air.', emoji: '🐟',
+    question: 'Ikan berenang di mana?',
+    choices: [{ label: 'air', emoji: '💧' }, { label: 'pohon', emoji: '🌳' }, { label: 'meja', emoji: '🪑' }],
+    answer: 'air',
+  },
+  {
+    id: 's12', text: 'Matahari terbit di pagi hari.', emoji: '☀️',
+    question: 'Kapan matahari terbit?',
+    choices: [{ label: 'pagi', emoji: '🌅' }, { label: 'malam', emoji: '🌃' }, { label: 'hujan', emoji: '🌧️' }],
+    answer: 'pagi',
+  },
+  {
+    id: 's13', text: 'Kelinci suka makan wortel.', emoji: '🐰',
+    question: 'Kelinci makan apa?',
+    choices: [{ label: 'wortel', emoji: '🥕' }, { label: 'roti', emoji: '🍞' }, { label: 'nasi', emoji: '🍚' }],
+    answer: 'wortel',
+  },
+  {
+    id: 's14', text: 'Bunga mawar harum baunya.', emoji: '🌹',
+    question: 'Apa yang harum?',
+    choices: [{ label: 'bunga', emoji: '🌸' }, { label: 'batu', emoji: '🪨' }, { label: 'kayu', emoji: '🪵' }],
+    answer: 'bunga',
+  },
+  {
+    id: 's15', text: 'Ayah minum kopi panas.', emoji: '☕',
+    question: 'Ayah minum apa?',
+    choices: [{ label: 'kopi', emoji: '☕' }, { label: 'susu', emoji: '🥛' }, { label: 'es', emoji: '🧊' }],
+    answer: 'kopi',
+  },
+  {
+    id: 's16', text: 'Bebek berenang di kolam.', emoji: '🦆',
+    question: 'Siapa yang berenang di kolam?',
+    choices: [{ label: 'bebek', emoji: '🦆' }, { label: 'kuda', emoji: '🐴' }, { label: 'kera', emoji: '🐒' }],
+    answer: 'bebek',
+  },
+  {
+    id: 's17', text: 'Bintang bersinar di langit malam.', emoji: '⭐',
+    question: 'Apa yang bersinar di langit malam?',
+    choices: [{ label: 'bintang', emoji: '⭐' }, { label: 'lampu', emoji: '💡' }, { label: 'meja', emoji: '🪑' }],
+    answer: 'bintang',
+  },
+  {
+    id: 's18', text: 'Ibu menyapu lantai dengan sapu.', emoji: '🧹',
+    question: 'Ibu menyapu pakai apa?',
+    choices: [{ label: 'sapu', emoji: '🧹' }, { label: 'buku', emoji: '📕' }, { label: 'palu', emoji: '🔨' }],
+    answer: 'sapu',
+  },
+  {
+    id: 's19', text: 'Kuda berlari sangat cepat.', emoji: '🐴',
+    question: 'Hewan apa yang berlari cepat?',
+    choices: [{ label: 'kuda', emoji: '🐴' }, { label: 'semut', emoji: '🐜' }, { label: 'kura', emoji: '🐢' }],
+    answer: 'kuda',
+  },
+  {
+    id: 's20', text: 'Adik suka makan roti manis.', emoji: '🍞',
+    question: 'Apa rasa roti adik?',
+    choices: [{ label: 'manis', emoji: '🍯' }, { label: 'asin', emoji: '🧂' }, { label: 'pedas', emoji: '🌶️' }],
+    answer: 'manis',
+  },
+  {
+    id: 's21', text: 'Pohon mangga berbuah lebat.', emoji: '🥭',
+    question: 'Pohon apa yang berbuah?',
+    choices: [{ label: 'mangga', emoji: '🥭' }, { label: 'cemara', emoji: '🌲' }, { label: 'rumput', emoji: '🌱' }],
+    answer: 'mangga',
+  },
+  {
+    id: 's22', text: 'Roket meluncur ke luar angkasa.', emoji: '🚀',
+    question: 'Roket meluncur ke mana?',
+    choices: [{ label: 'angkasa', emoji: '🌌' }, { label: 'laut', emoji: '🌊' }, { label: 'pasar', emoji: '🏪' }],
+    answer: 'angkasa',
+  },
+  {
+    id: 's23', text: 'Kakak menyikat gigi sebelum tidur.', emoji: '🪥',
+    question: 'Kakak menyikat apa?',
+    choices: [{ label: 'gigi', emoji: '🦷' }, { label: 'kaki', emoji: '🦶' }, { label: 'sepatu', emoji: '👟' }],
+    answer: 'gigi',
+  },
+  {
+    id: 's24', text: 'Saat hujan kita memakai payung.', emoji: '☂️',
+    question: 'Apa yang dipakai saat hujan?',
+    choices: [{ label: 'payung', emoji: '☂️' }, { label: 'kipas', emoji: '🪭' }, { label: 'topi', emoji: '🧢' }],
+    answer: 'payung',
+  },
+  {
+    id: 's25', text: 'Kupu-kupu hinggap di bunga.', emoji: '🦋',
+    question: 'Kupu-kupu hinggap di mana?',
+    choices: [{ label: 'bunga', emoji: '🌸' }, { label: 'tanah', emoji: '🪵' }, { label: 'atap', emoji: '🏠' }],
+    answer: 'bunga',
+  },
+  {
+    id: 's26', text: 'Sapi menghasilkan susu segar.', emoji: '🐄',
+    question: 'Hewan apa yang menghasilkan susu?',
+    choices: [{ label: 'sapi', emoji: '🐄' }, { label: 'ayam', emoji: '🐔' }, { label: 'bebek', emoji: '🦆' }],
+    answer: 'sapi',
+  },
+  {
+    id: 's27', text: 'Adik tidur di atas kasur empuk.', emoji: '🛏️',
+    question: 'Di mana adik tidur?',
+    choices: [{ label: 'kasur', emoji: '🛏️' }, { label: 'meja', emoji: '🪑' }, { label: 'lantai', emoji: '🪵' }],
+    answer: 'kasur',
+  },
+  {
+    id: 's28', text: 'Jeruk rasanya manis dan asam.', emoji: '🍊',
+    question: 'Buah apa yang berwarna oranye?',
+    choices: [{ label: 'jeruk', emoji: '🍊' }, { label: 'apel', emoji: '🍎' }, { label: 'pisang', emoji: '🍌' }],
+    answer: 'jeruk',
+  },
+  {
+    id: 's29', text: 'Katak melompat di atas daun.', emoji: '🐸',
+    question: 'Siapa yang melompat di atas daun?',
+    choices: [{ label: 'katak', emoji: '🐸' }, { label: 'ikan', emoji: '🐟' }, { label: 'kambing', emoji: '🐐' }],
+    answer: 'katak',
+  },
+  {
+    id: 's30', text: 'Monyet suka makan pisang kuning.', emoji: '🐒',
+    question: 'Monyet suka makan apa?',
+    choices: [{ label: 'pisang', emoji: '🍌' }, { label: 'rumput', emoji: '🌱' }, { label: 'ikan', emoji: '🐟' }],
+    answer: 'pisang',
+  },
+  {
+    id: 's31', text: 'Kapal berlayar di tengah lautan.', emoji: '🚢',
+    question: 'Apa yang berlayar di lautan?',
+    choices: [{ label: 'kapal', emoji: '🚢' }, { label: 'mobil', emoji: '🚗' }, { label: 'sepeda', emoji: '🚲' }],
+    answer: 'kapal',
+  },
+  {
+    id: 's32', text: 'Ayam jantan berkokok pagi hari.', emoji: '🐓',
+    question: 'Hewan apa yang berkokok pagi hari?',
+    choices: [{ label: 'ayam', emoji: '🐓' }, { label: 'kucing', emoji: '🐱' }, { label: 'burung', emoji: '🐦' }],
+    answer: 'ayam',
+  },
 ];
-

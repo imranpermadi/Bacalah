@@ -12,6 +12,8 @@ import {
 import { colors, fonts } from './src/core/theme';
 import { useAppStore } from './src/presentation/stores/useAppStore';
 import { BottomTabs } from './src/presentation/navigation/BottomTabs';
+import { LoginScreen } from './src/presentation/screens/auth/LoginScreen';
+import { ProfileSelectScreen } from './src/presentation/screens/auth/ProfileSelectScreen';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -22,6 +24,8 @@ export default function App() {
 
   const ready = useAppStore((s) => s.ready);
   const error = useAppStore((s) => s.error);
+  const isLoggedIn = useAppStore((s) => s.isLoggedIn);
+  const isProfileSelected = useAppStore((s) => s.isProfileSelected);
   const init = useAppStore((s) => s.init);
 
   useEffect(() => {
@@ -53,10 +57,16 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
-        <StatusBar style="dark" backgroundColor={colors.bg} />
-        <BottomTabs />
-      </NavigationContainer>
+      <StatusBar style="dark" backgroundColor={colors.bg} />
+      {!isLoggedIn ? (
+        <LoginScreen />
+      ) : !isProfileSelected ? (
+        <ProfileSelectScreen />
+      ) : (
+        <NavigationContainer>
+          <BottomTabs />
+        </NavigationContainer>
+      )}
     </SafeAreaProvider>
   );
 }
@@ -87,4 +97,3 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 });
-

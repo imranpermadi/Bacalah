@@ -38,16 +38,13 @@ export class LanguageMasteryService {
       const sessions = prog?.sessions ?? 0;
 
       let status: 'locked' | 'in_progress' | 'completed' = 'locked';
-      if (bestStars >= 3) {
+      const isUnlocked = prog?.unlocked ?? (meta.level === 1);
+      if (bestStars >= 2) {
         status = 'completed';
-      } else if (sessions > 0 || meta.level === 1) {
+      } else if (isUnlocked) {
         status = 'in_progress';
       } else {
-        // Cek apakah level sebelumnya sudah pernah dimainkan
-        const prevProg = levelMap.get(meta.level - 1);
-        if (prevProg && prevProg.bestStars >= 1) {
-          status = 'in_progress';
-        }
+        status = 'locked';
       }
 
       return {

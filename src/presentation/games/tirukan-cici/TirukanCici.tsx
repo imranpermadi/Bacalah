@@ -30,7 +30,7 @@ function makeItem(round: number): Item {
 
 /** 🎤 Tirukan Cici (Voice Challenge): bintang 1–3 berdasarkan kemiripan lafal. */
 export function TirukanCici({ onExit }: { onExit: () => void }) {
-  const session = useGameSession(5);
+  const session = useGameSession('tirukan', 30);
   const [item, setItem] = useState<Item>(() => makeItem(0));
 
   useEffect(() => {
