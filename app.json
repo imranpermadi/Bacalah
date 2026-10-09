@@ -12,7 +12,9 @@
     },
     "android": {
       "package": "id.bacalah.app",
-      "permissions": ["RECORD_AUDIO"]
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-sqlite",
@@ -22,7 +24,8 @@
           "microphonePermission": "Bacalah memakai mikrofon agar Cici bisa mendengar suaramu."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "./plugins/with-slim-build"
     ],
     "extra": {
       "eas": {
