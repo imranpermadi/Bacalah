@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "BACALAH",
+    "slug": "bacalah",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "id.bacalah.app",
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Bacalah memakai pengenalan suara agar Cici bisa menilai lafalmu.",
+        "NSMicrophoneUsageDescription": "Bacalah memakai mikrofon agar Cici bisa mendengar suaramu."
+      }
+    },
+    "android": {
+      "package": "id.bacalah.app",
+      "permissions": [
+        "RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Bacalah memakai mikrofon agar Cici bisa mendengar suaramu."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Bacalah memakai mikrofon agar Cici bisa mendengar suaramu.",
+          "speechRecognitionPermission": "Bacalah memakai pengenalan suara agar Cici bisa menilai lafalmu."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f24c64b0-dfac-4a01-9390-63113d7fdd08"
+      }
+    },
+    "owner": "akhiimron"
+  }
+}
