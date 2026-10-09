@@ -13,12 +13,16 @@
 ## 📲 Unduh & Pasang Langsung di HP Android
 
 File installer APK standalone hasil build cloud EAS Expo dapat langsung diunduh dan dipasang:
-- 🚀 **[Download File APK v1.0.1 ~21.3 MB (Kompatibel Android 14/15/16 & Xiaomi HyperOS)](https://expo.dev/artifacts/eas/7yas3PD_U_eQNSCQrHd_3tLBjZnVP5A4P5ge0nNka9o.apk)**
-- 🌐 **[Halaman Build EAS Expo (v1.0.1)](https://expo.dev/accounts/akhiimron/projects/bacalah/builds/b77992b2-af2d-42f4-82d3-2df4ec4ba935)**
+- 🚀 **[Download File APK v1.0.3 ~21.7 MB (Direct Download APK)](https://expo.dev/artifacts/eas/Rm_y-sJGGfhCnB-HSLJzP8jE3cluakv9CrP-8R91xqI.apk)**
+- 🌐 **[Halaman Build EAS Expo (v1.0.3)](https://expo.dev/accounts/akhiimron/projects/bacalah/builds/e2de91d4-2306-4c8e-a436-f6e67961cc82)**
 
-> 💡 **Catatan untuk Pengguna Android 16 & Xiaomi / Redmi (HyperOS):**  
-> 1. Jika muncul peringatan keamanan Google Play Protect / Xiaomi, ketuk **"Detail Tambahan" (More details)** lalu pilih **"Tetap Pasang" (Install anyway)**.  
-> 2. Di Android 16, jika muncul *"Setelan yang dibatasi"* (Restricted settings): Buka **Setelan ➔ Aplikasi ➔ Chrome (atau File Manager) ➔ Ketuk ikon titik tiga (⋮) di kanan atas ➔ Izinkan setelan yang dibatasi**.
+> 📱 **Kompatibilitas Sistem Operasi:**  
+> - **Minimum Android:** Android 7.0 Nougat (API Level 24)+.  
+> - **Didukung Penuh:** Android 11, 12, 13 (Tecno Spark, Samsung, Infinix), 14, 15, dan 16 (Xiaomi / Redmi HyperOS).  
+>  
+> 💡 **Tips Pemasangan (Sideload APK):**  
+> 1. Jika di HP sudah ada versi BACALAH sebelumnya, **hapus/uninstall** terlebih dahulu versi lama agar tidak terjadi konflik signature.  
+> 2. Jika muncul peringatan keamanan Google Play Protect, ketuk **"Detail" / "Rincian"** lalu pilih **"Tetap Pasang" (Install anyway)**.
 
 ---
 
