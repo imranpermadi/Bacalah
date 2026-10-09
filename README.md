@@ -13,8 +13,12 @@
 ## 📲 Unduh & Pasang Langsung di HP Android
 
 File installer APK standalone hasil build cloud EAS Expo dapat langsung diunduh dan dipasang:
-- 📥 **[Download File APK Langsung (v1.0.0)](https://expo.dev/artifacts/eas/1n5nBeB3ZnN1_vpeiRNT9gI2ioaNm_Uy-QiZYTTG0_s.apk)**
-- 🌐 **[Halaman Build EAS Expo](https://expo.dev/accounts/akhiimron/projects/bacalah/builds/7586d357-e078-4007-8e91-df7ba9a88f30)**
+- ⚡ **[Download File APK Versi Ramping ~33 MB (Direkomendasikan untuk HP Modern)](https://expo.dev/artifacts/eas/687YIELV274r2lrc6U3Jyw4IokYvN6RsWubFWbAov_c.apk)**
+- 📥 **[Download File APK Universal ~82 MB (Semua Tipe HP)](https://expo.dev/artifacts/eas/1n5nBeB3ZnN1_vpeiRNT9gI2ioaNm_Uy-QiZYTTG0_s.apk)**
+- 🌐 **[Halaman Build EAS Expo (Versi Ramping)](https://expo.dev/accounts/akhiimron/projects/bacalah/builds/dd3f1670-020b-4d7c-8b93-aa2ad639b3bd)**
+
+> 💡 **Catatan untuk Pengguna Xiaomi / Redmi (HyperOS / MIUI):**  
+> Saat menginstal, jika muncul peringatan dari pemeriksa keamanan Xiaomi atau Google Play Protect, ketuk **"Detail Tambahan" (More details)** lalu pilih **"Tetap Pasang" (Install anyway)**. Pastikan juga izin *"Instal aplikasi yang tidak dikenal"* sudah aktif untuk File Manager / Browser Chrome di menu Setelan HP.
 
 ---
 
