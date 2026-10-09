@@ -13,12 +13,12 @@
 ## 📲 Unduh & Pasang Langsung di HP Android
 
 File installer APK standalone hasil build cloud EAS Expo dapat langsung diunduh dan dipasang:
-- ⚡ **[Download File APK Versi Ramping ~33 MB (Direkomendasikan untuk HP Modern)](https://expo.dev/artifacts/eas/687YIELV274r2lrc6U3Jyw4IokYvN6RsWubFWbAov_c.apk)**
-- 📥 **[Download File APK Universal ~82 MB (Semua Tipe HP)](https://expo.dev/artifacts/eas/1n5nBeB3ZnN1_vpeiRNT9gI2ioaNm_Uy-QiZYTTG0_s.apk)**
-- 🌐 **[Halaman Build EAS Expo (Versi Ramping)](https://expo.dev/accounts/akhiimron/projects/bacalah/builds/dd3f1670-020b-4d7c-8b93-aa2ad639b3bd)**
+- 🚀 **[Download File APK v1.0.1 ~21.3 MB (Kompatibel Android 14/15/16 & Xiaomi HyperOS)](https://expo.dev/artifacts/eas/7yas3PD_U_eQNSCQrHd_3tLBjZnVP5A4P5ge0nNka9o.apk)**
+- 🌐 **[Halaman Build EAS Expo (v1.0.1)](https://expo.dev/accounts/akhiimron/projects/bacalah/builds/b77992b2-af2d-42f4-82d3-2df4ec4ba935)**
 
-> 💡 **Catatan untuk Pengguna Xiaomi / Redmi (HyperOS / MIUI):**  
-> Saat menginstal, jika muncul peringatan dari pemeriksa keamanan Xiaomi atau Google Play Protect, ketuk **"Detail Tambahan" (More details)** lalu pilih **"Tetap Pasang" (Install anyway)**. Pastikan juga izin *"Instal aplikasi yang tidak dikenal"* sudah aktif untuk File Manager / Browser Chrome di menu Setelan HP.
+> 💡 **Catatan untuk Pengguna Android 16 & Xiaomi / Redmi (HyperOS):**  
+> 1. Jika muncul peringatan keamanan Google Play Protect / Xiaomi, ketuk **"Detail Tambahan" (More details)** lalu pilih **"Tetap Pasang" (Install anyway)**.  
+> 2. Di Android 16, jika muncul *"Setelan yang dibatasi"* (Restricted settings): Buka **Setelan ➔ Aplikasi ➔ Chrome (atau File Manager) ➔ Ketuk ikon titik tiga (⋮) di kanan atas ➔ Izinkan setelan yang dibatasi**.
 
 ---
 

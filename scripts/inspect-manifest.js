@@ -54,3 +54,4 @@ while (strPos < manifestBuf.length && strings.length < stringCount) {
 }
 
 console.log('Key manifest strings:', strings.filter(s => s.includes('id.bacalah') || s.includes('version') || s.includes('sdk') || s.includes('Activity') || s.includes('permission')));
+

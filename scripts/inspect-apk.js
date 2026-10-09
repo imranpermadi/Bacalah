@@ -38,3 +38,4 @@ console.log('Has AndroidManifest.xml:', hasManifest);
 const abis = [...new Set(libEntries.map(e => e.split('/')[1]))];
 console.log('ABIs present in APK:', abis);
 console.log('Sample lib entries:', libEntries.slice(0, 10));
+
