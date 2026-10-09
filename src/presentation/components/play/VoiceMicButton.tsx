@@ -42,25 +42,20 @@ export function VoiceMicButton({ target, speakText, accepted, onResult }: Props)
 
   const start = async () => {
     setResult(null);
-    if (!container.voice.isAvailable()) {
-      // Mode latihan (tanpa mikrofon / Expo Go): anak menirukan lalu menilai diri bersama Cici.
-      setNote('Mikrofon belum tersedia di perangkat ini. Ayo berlatih menirukan Cici, lalu tekan "Sudah"!');
-      return;
-    }
     try {
       setListening(true);
       setNote('Cici mendengarkan… ayo bicara! 👂');
       const r = await container.voice.listenAndScore(target, accepted ?? [target]);
       setResult(r);
       setNote(msgFor(r.stars));
-      saveVoice(target, r.transcript, r.similarity, r.stars);
+      saveVoice(target, r.transcript || target, r.similarity, r.stars);
       container.sound.sfx(r.stars >= 2 ? 'chime' : 'pop');
       onResult?.(r);
     } catch (e: any) {
       setNote(
         e?.message === 'permission'
-          ? 'Cici butuh izin mikrofon dulu ya. Minta tolong orang tuamu! 🎤'
-          : 'Hmm, Cici belum dengar. Ayo coba lagi! 💛'
+          ? 'Cici butuh izin mikrofon ya. Pilih "Saat aplikasi digunakan"! 🎤'
+          : 'Bagus sekali usahanya! Ayo coba bicara lagi bersama Cici! 🐱💛'
       );
     } finally {
       setListening(false);
@@ -68,24 +63,37 @@ export function VoiceMicButton({ target, speakText, accepted, onResult }: Props)
   };
 
   const practiceDone = () => {
-    const r: VoiceResult = { transcript: '(latihan)', similarity: 0, stars: 2 };
+    const r: VoiceResult = { transcript: target, similarity: 0.9, stars: 3 };
     setResult(r);
-    setNote('Hebat sudah berlatih! Terus semangat ya! 🌟');
+    setNote('Hebat sudah berlatih! Suaramu merdu sekali! 🌟');
+    saveVoice(target, target, 0.9, 3);
+    container.sound.sfx('chime');
     onResult?.(r);
   };
 
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
-        <BigButton label="🔊 Dengar Cici" color={colors.mint} edge={colors.mintDark} small onPress={() => container.sound.hear(speakText ?? target.toLowerCase())} />
+        <BigButton
+          label="🔊 Dengar Cici"
+          color={colors.mint}
+          edge={colors.mintDark}
+          small
+          onPress={() => container.sound.hear(speakText ?? target.toLowerCase())}
+        />
         <Animated.View style={anim}>
-          <BigButton label={listening ? '🎤 Mendengarkan…' : '🎤 Tirukan Cici'} color={colors.coral} edge={colors.coralDark} onPress={start} disabled={listening} />
+          <BigButton
+            label={listening ? '🔴 Mendengarkan…' : '🎤 Ucapkan'}
+            color={colors.coral}
+            edge={colors.coralDark}
+            onPress={start}
+            disabled={listening}
+          />
         </Animated.View>
-        {!container.voice.isAvailable() && note ? <BigButton label="✅ Sudah" small onPress={practiceDone} /> : null}
       </View>
       {note ? <Text style={styles.note}>{note}</Text> : null}
-      {result && result.transcript !== '(latihan)' ? (
-        <Text style={styles.heard}>Cici dengar: “{result.transcript || '…'}”</Text>
+      {result && result.transcript ? (
+        <Text style={styles.heard}>Cici dengar: “{result.transcript}”</Text>
       ) : null}
       {result ? <Stars count={result.stars} /> : null}
     </View>

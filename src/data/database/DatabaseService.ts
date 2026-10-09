@@ -43,6 +43,19 @@ const MIGRATIONS: string[][] = [
        created_at INTEGER NOT NULL
      );`,
   ],
+  // v3: Akun Google & Cloud Sync backup snapshot
+  [
+    `CREATE TABLE IF NOT EXISTS cloud_sync (
+       id INTEGER PRIMARY KEY CHECK (id = 1),
+       google_id TEXT,
+       email TEXT,
+       display_name TEXT,
+       photo_url TEXT,
+       backup_json TEXT,
+       last_synced INTEGER
+     );`,
+    `INSERT OR IGNORE INTO cloud_sync (id) VALUES (1);`,
+  ],
 ];
 
 export class DatabaseService {

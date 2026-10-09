@@ -27,3 +27,38 @@ export interface VoiceStats {
   avgStars: number;
 }
 
+export interface LetterConfusion {
+  expected: string;
+  pressed: string;
+  times: number;
+}
+
+export interface GoogleAccount {
+  id: string;
+  email: string;
+  name: string;
+  photoUrl: string | null;
+  lastSyncedAt: number | null;
+}
+
+export interface LevelMasteryDetail {
+  level: number;
+  title: string;
+  emoji: string;
+  description: string;
+  bestStars: number;
+  sessions: number;
+  status: 'locked' | 'in_progress' | 'completed';
+}
+
+export interface LanguageDiagnosis {
+  overallMasteryPercent: number;
+  currentMilestoneStage: string;
+  totalLettersLearned: number;
+  confusions: LetterConfusion[];
+  weakestLetters: LetterAccuracyStats[];
+  levels: LevelMasteryDetail[];
+  voicePracticeCount: number;
+  voiceAverageStars: number;
+}
+

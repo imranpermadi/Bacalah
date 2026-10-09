@@ -2,7 +2,7 @@
   "expo": {
     "name": "BACALAH",
     "slug": "bacalah",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -13,7 +13,7 @@
     },
     "android": {
       "package": "id.bacalah.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "permissions": [
         "RECORD_AUDIO"
       ],
@@ -24,6 +24,13 @@
     },
     "plugins": [
       "expo-sqlite",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Bacalah memakai mikrofon agar Cici bisa mendengar ucapan membaca anak.",
+          "speechRecognitionPermission": "Bacalah memakai pengenal suara agar Cici bisa menilai lafal bacaan."
+        }
+      ],
       [
         "expo-audio",
         {

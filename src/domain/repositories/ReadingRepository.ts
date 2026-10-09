@@ -1,6 +1,8 @@
 import {
   ChildProfile,
+  GoogleAccount,
   LetterAccuracyStats,
+  LetterConfusion,
   LevelProgress,
   VoiceStats,
 } from '../entities/LetterAccuracyStats';
@@ -12,12 +14,18 @@ export interface ReadingRepository {
 
   getAllLetterStats(): Promise<LetterAccuracyStats[]>;
   recordLetterResult(letter: string, correct: boolean, pressed?: string): Promise<void>;
+  getLetterConfusions(): Promise<LetterConfusion[]>;
 
   recordLevelSession(level: number, stars: number): Promise<void>;
   getLevelProgress(): Promise<LevelProgress[]>;
 
   saveVoiceScore(target: string, transcript: string, similarity: number, stars: number): Promise<void>;
   getVoiceStats(): Promise<VoiceStats>;
+
+  getGoogleAccount(): Promise<GoogleAccount | null>;
+  saveGoogleAccount(account: GoogleAccount | null): Promise<void>;
+  getBackupSnapshot(): Promise<string>;
+  restoreBackupSnapshot(jsonStr: string): Promise<void>;
 
   resetAll(): Promise<void>;
 }

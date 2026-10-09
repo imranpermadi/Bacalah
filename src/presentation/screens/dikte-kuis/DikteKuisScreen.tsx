@@ -18,6 +18,8 @@ import { BigButton, HearButtons, ScreenTitle, Stars } from '../../components/com
 import { BubbleKeyboard } from '../../components/play/BubbleKeyboard';
 import { DictationInputSlot } from '../../components/play/DictationInputSlot';
 import { MascotCici, Mood } from '../../components/play/MascotCici';
+import { VoiceMicButton } from '../../components/play/VoiceMicButton';
+import { VoiceResult } from '../../../core/sound/VoiceEvaluatorService';
 import { useAppStore } from '../../stores/useAppStore';
 
 const { width } = Dimensions.get('window');
@@ -146,6 +148,37 @@ export function DikteKuisScreen() {
     }
   };
 
+  // Handle voice speech recognition result in Dictation
+  const handleVoiceResult = (res: VoiceResult) => {
+    if (!currentExercise || isSessionComplete) return;
+    if (res.similarity >= 0.55 || res.stars >= 2) {
+      // Tepat atau mendekati: langsung anggap benar
+      for (const ch of currentExercise.target) {
+        recordLetter(ch, true);
+      }
+      setTyped(currentExercise.target);
+      if (mistakesThisQuestion === 0) {
+        setTotalCorrectFirstTry((prev) => prev + 1);
+      }
+      setCiciMood('happy');
+      setCiciMoodToken((t) => t + 1);
+      setCiciMessage('Hebat sekali! Lafalmu jelas dan tepat! 🎤🌟');
+      container.sound.sfx('chime');
+
+      setTimeout(() => {
+        if (currentIndex + 1 >= exercises.length) {
+          handleCompleteSession();
+        } else {
+          setCurrentIndex((i) => i + 1);
+          setTyped('');
+          setMistakesThisQuestion(0);
+          setCiciMood('idle');
+          setCiciMessage('Luar biasa! Lanjut ke soal berikutnya! ✨');
+        }
+      }, 1200);
+    }
+  };
+
   // Determine keyboard letters for Adaptive Scaffolding
   const currentKeyLetters = React.useMemo(() => {
     if (!currentExercise) return [];
@@ -165,7 +198,7 @@ export function DikteKuisScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenTitle sub="Dengarkan Suara Cici, Lalu Ketik Hurufnya!">
+      <ScreenTitle sub="Dengarkan Suara Cici, Lalu Ketik atau Ucapkan!">
         Dikte Cerdas Cici 📝
       </ScreenTitle>
 
@@ -208,32 +241,34 @@ export function DikteKuisScreen() {
       </View>
 
       {/* Level Buttons Bar */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.levelBar}
-      >
-        {levelMeta.slice(0, 5).map((l) => {
-          const isSelected = activeLevel === l.level;
-          return (
-            <Pressable
-              key={l.level}
-              onPress={() => {
-                setActiveLevel(l.level);
-                container.sound.sfx('pop');
-              }}
-              style={[
-                styles.levelPill,
-                { backgroundColor: isSelected ? l.color : '#FFFFFF' },
-                raised(isSelected ? colors.sunnyDark : colors.line),
-              ]}
-            >
-              <Text style={styles.levelPillEmoji}>{l.emoji}</Text>
-              <Text style={styles.levelPillText}>L{l.level}: {l.title}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <View style={{ height: 48 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.levelBar}
+        >
+          {levelMeta.slice(0, 5).map((l) => {
+            const isSelected = activeLevel === l.level;
+            return (
+              <Pressable
+                key={l.level}
+                onPress={() => {
+                  setActiveLevel(l.level);
+                  container.sound.sfx('pop');
+                }}
+                style={[
+                  styles.levelPill,
+                  { backgroundColor: isSelected ? l.color : '#FFFFFF' },
+                  raised(isSelected ? colors.sunnyDark : colors.line),
+                ]}
+              >
+                <Text style={styles.levelPillEmoji}>{l.emoji}</Text>
+                <Text style={styles.levelPillText}>L{l.level}: {l.title}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {isSessionComplete ? (
         <View style={styles.completeBox}>
@@ -269,13 +304,18 @@ export function DikteKuisScreen() {
           <Celebration visible />
         </View>
       ) : (
-        <View style={styles.content}>
+        <ScrollView
+          style={styles.scrollWrapper}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Cici Mascot Bubble */}
           <MascotCici
             mood={ciciMood}
             moodToken={ciciMoodToken}
             message={ciciMessage}
-            size={76}
+            size={72}
           />
 
           {/* Exercise Arena */}
@@ -299,11 +339,21 @@ export function DikteKuisScreen() {
                 />
               </View>
 
-              {/* Audio Listen Buttons */}
-              <HearButtons
-                text={currentExercise.speakText}
-                slowParts={currentExercise.slowParts}
-              />
+              {/* Hear and Voice Mic Section */}
+              <View style={styles.actionSection}>
+                <HearButtons
+                  text={currentExercise.speakText}
+                  slowParts={currentExercise.slowParts}
+                />
+                <View style={{ marginTop: 8 }}>
+                  <VoiceMicButton
+                    target={currentExercise.target}
+                    speakText={currentExercise.speakText}
+                    accepted={[currentExercise.target, currentExercise.speakText]}
+                    onResult={handleVoiceResult}
+                  />
+                </View>
+              </View>
             </View>
           ) : null}
 
@@ -318,7 +368,7 @@ export function DikteKuisScreen() {
               width={width}
             />
           </View>
-        </View>
+        </ScrollView>
       )}
     </SafeAreaView>
   );
@@ -365,7 +415,12 @@ const styles = StyleSheet.create({
   },
   levelPillEmoji: { fontSize: 16 },
   levelPillText: { fontFamily: fonts.black, fontSize: 13, color: colors.ink },
-  content: { flex: 1, justifyContent: 'space-between', paddingBottom: 16 },
+  scrollWrapper: { flex: 1 },
+  scrollContent: {
+    paddingBottom: 110,
+    paddingTop: 4,
+    gap: 12,
+  },
   arenaCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
@@ -373,6 +428,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 5,
     borderBottomColor: colors.line,
+  },
+  actionSection: {
+    alignItems: 'center',
+    gap: 8,
   },
   progressRow: {
     flexDirection: 'row',

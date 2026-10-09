@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { container } from '../../core/di/container';
-import { ChildProfile, LetterAccuracyStats, LevelProgress, VoiceStats } from '../../domain/entities/LetterAccuracyStats';
+import {
+  ChildProfile,
+  GoogleAccount,
+  LetterAccuracyStats,
+  LetterConfusion,
+  LevelProgress,
+  VoiceStats,
+} from '../../domain/entities/LetterAccuracyStats';
 import { AlphabetMasteryEngine, LetterWeights } from '../../domain/services/AlphabetMasteryEngine';
 
 interface AppState {
@@ -11,6 +18,10 @@ interface AppState {
   weights: LetterWeights;
   levels: LevelProgress[];
   voice: VoiceStats;
+  confusions: LetterConfusion[];
+  googleAccount: GoogleAccount | null;
+  isSyncing: boolean;
+  lastSyncMessage: string | null;
 
   init(): Promise<void>;
   recordLetter(letter: string, correct: boolean, pressed?: string): void;
@@ -18,10 +29,15 @@ interface AppState {
   finishSession(level: number, stars: number): void;
   saveVoice(target: string, transcript: string, sim: number, stars: number): void;
   setMode(mode: 'pemula' | 'mandiri'): void;
+  loginGoogle(email?: string, name?: string): Promise<void>;
+  logoutGoogle(): Promise<void>;
+  syncCloud(): Promise<void>;
+  restoreCloud(): Promise<void>;
   reset(): Promise<void>;
 }
 
 const repo = container.repository;
+const sync = container.sync;
 const emptyWeights = AlphabetMasteryEngine.computeWeights([]);
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -32,16 +48,31 @@ export const useAppStore = create<AppState>((set, get) => ({
   weights: emptyWeights,
   levels: [],
   voice: { attempts: 0, avgStars: 0 },
+  confusions: [],
+  googleAccount: null,
+  isSyncing: false,
+  lastSyncMessage: null,
 
   async init() {
     try {
-      const [profile, stats, levels, voice] = await Promise.all([
+      const [profile, stats, levels, voice, confusions, googleAccount] = await Promise.all([
         repo.getProfile(),
         repo.getAllLetterStats(),
         repo.getLevelProgress(),
         repo.getVoiceStats(),
+        repo.getLetterConfusions(),
+        repo.getGoogleAccount(),
       ]);
-      set({ ready: true, profile, stats, levels, voice, weights: AlphabetMasteryEngine.computeWeights(stats) });
+      set({
+        ready: true,
+        profile,
+        stats,
+        levels,
+        voice,
+        confusions,
+        googleAccount,
+        weights: AlphabetMasteryEngine.computeWeights(stats),
+      });
     } catch (e) {
       set({ ready: true, error: String(e) });
     }
@@ -62,7 +93,11 @@ export const useAppStore = create<AppState>((set, get) => ({
           }
     );
     set({ stats, weights: AlphabetMasteryEngine.computeWeights(stats) });
-    repo.recordLetterResult(letter, correct, pressed).catch(() => {});
+    repo.recordLetterResult(letter, correct, pressed).then(() => {
+      if (!correct && pressed) {
+        repo.getLetterConfusions().then((confusions) => set({ confusions }));
+      }
+    }).catch(() => {});
   },
 
   addStars(n) {
@@ -71,7 +106,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   finishSession(level, stars) {
-    repo.recordLevelSession(level, stars).then(() => repo.getLevelProgress()).then((levels) => set({ levels })).catch(() => {});
+    repo
+      .recordLevelSession(level, stars)
+      .then(() => repo.getLevelProgress())
+      .then((levels) => {
+        set({ levels });
+        // Auto-sync jika sudah terhubung ke Google
+        if (get().googleAccount) {
+          sync.syncToCloud().catch(() => {});
+        }
+      })
+      .catch(() => {});
     get().addStars(stars);
   },
 
@@ -86,6 +131,54 @@ export const useAppStore = create<AppState>((set, get) => ({
   setMode(mode) {
     set({ profile: { ...get().profile, mode } });
     repo.updateProfile({ mode }).catch(() => {});
+  },
+
+  async loginGoogle(email, name) {
+    set({ isSyncing: true });
+    try {
+      const account = await sync.signInWithGoogle(email, name);
+      set({
+        googleAccount: account,
+        isSyncing: false,
+        lastSyncMessage: 'Akun Google terhubung & data tersimpan di Cloud! ☁️',
+      });
+    } catch (e) {
+      set({ isSyncing: false, lastSyncMessage: 'Gagal menghubungkan Google.' });
+    }
+  },
+
+  async logoutGoogle() {
+    await sync.signOut();
+    set({ googleAccount: null, lastSyncMessage: 'Akun Google diputus.' });
+  },
+
+  async syncCloud() {
+    set({ isSyncing: true });
+    try {
+      const res = await sync.syncToCloud();
+      const account = await repo.getGoogleAccount();
+      set({
+        isSyncing: false,
+        googleAccount: account,
+        lastSyncMessage: `Sinkronisasi berhasil! ${res.summary}`,
+      });
+    } catch (e) {
+      set({ isSyncing: false, lastSyncMessage: 'Gagal sinkronisasi ke Cloud.' });
+    }
+  },
+
+  async restoreCloud() {
+    set({ isSyncing: true });
+    try {
+      const res = await sync.restoreFromCloud();
+      await get().init();
+      set({
+        isSyncing: false,
+        lastSyncMessage: `Data berhasil dipulihkan! ${res.stars} ⭐ bintang kembali.`,
+      });
+    } catch (e) {
+      set({ isSyncing: false, lastSyncMessage: 'Gagal memulihkan cadangan.' });
+    }
   },
 
   async reset() {
