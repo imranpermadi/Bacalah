@@ -13,12 +13,12 @@
 ## 📲 Unduh & Pasang Langsung di HP Android
 
 File installer APK standalone hasil build cloud EAS Expo dapat langsung diunduh dan dipasang:
-- 🚀 **[Download File APK v1.0.3 ~21.7 MB (Direct Download APK)](https://expo.dev/artifacts/eas/Rm_y-sJGGfhCnB-HSLJzP8jE3cluakv9CrP-8R91xqI.apk)**
-- 🌐 **[Halaman Build EAS Expo (v1.0.3)](https://expo.dev/accounts/akhiimron/projects/bacalah/builds/e2de91d4-2306-4c8e-a436-f6e67961cc82)**
+- 🚀 **[Download File APK v1.0.4 Universal ~28.1 MB (Direct Download APK)](https://expo.dev/artifacts/eas/Gye7PcNGycHbh8xxLo_iGoBBZDjSPl6pN7w5Vgkj7tY.apk)**
+- 🌐 **[Halaman Build EAS Expo (v1.0.4)](https://expo.dev/accounts/akhiimron/projects/bacalah/builds/9aa938cc-8864-4ed1-a6c7-56112a15158f)**
 
-> 📱 **Kompatibilitas Sistem Operasi:**  
-> - **Minimum Android:** Android 7.0 Nougat (API Level 24)+.  
-> - **Didukung Penuh:** Android 11, 12, 13 (Tecno Spark, Samsung, Infinix), 14, 15, dan 16 (Xiaomi / Redmi HyperOS).  
+> 📱 **Kompatibilitas Sistem Operasi & Perangkat:**  
+> - **Dual-Architecture Universal:** Mendukung **32-bit (`armeabi-v7a`)** dan **64-bit (`arm64-v8a`)**.  
+> - **Didukung Penuh:** Tecno Spark (Android 13 / HiOS), Infinix, Xiaomi Redmi Note 14 (HyperOS / Android 14/15/16), Samsung, dan seluruh HP Android (Android 7.0+).  
 >  
 > 💡 **Tips Pemasangan (Sideload APK):**  
 > 1. Jika di HP sudah ada versi BACALAH sebelumnya, **hapus/uninstall** terlebih dahulu versi lama agar tidak terjadi konflik signature.  
