@@ -19,7 +19,6 @@
     "expo-audio": "~1.1.1",
     "expo-font": "~14.0.12",
     "expo-speech": "~14.0.8",
-    "expo-speech-recognition": "^57.1.1",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
     "lottie-react-native": "~7.3.1",
