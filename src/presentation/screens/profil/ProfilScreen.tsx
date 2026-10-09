@@ -34,6 +34,7 @@ export function ProfilScreen() {
   const lastSyncMessage = useAppStore((s) => s.lastSyncMessage);
 
   const setMode = useAppStore((s) => s.setMode);
+  const loginGoogleSSO = useAppStore((s) => s.loginGoogleSSO);
   const loginGoogle = useAppStore((s) => s.loginGoogle);
   const logoutGoogle = useAppStore((s) => s.logoutGoogle);
   const syncCloud = useAppStore((s) => s.syncCloud);
@@ -176,14 +177,27 @@ export function ProfilScreen() {
           ) : (
             <View style={styles.googlePromptBox}>
               <Text style={styles.googlePromptText}>
-                Belum terhubung ke Akun Google. Masuk agar seluruh bintang & catatan belajar anak tetap aman saat HP diperbarui!
+                Belum terhubung ke Akun Google. Masuk dengan SSO Google agar seluruh bintang & catatan belajar anak tetap aman saat HP diperbarui!
               </Text>
-              <BigButton
-                label="🌐 Hubungkan Akun Google"
-                color={colors.sunny}
-                edge={colors.sunnyDark}
-                onPress={() => setShowLoginModal(true)}
-              />
+              <View style={{ gap: 8, marginTop: 4 }}>
+                <BigButton
+                  label={isSyncing ? "⏳ Menghubungkan Google…" : "🌐 Masuk dengan SSO Google"}
+                  color={colors.coral}
+                  edge={colors.coralDark}
+                  disabled={isSyncing}
+                  onPress={async () => {
+                    await loginGoogleSSO();
+                    container.sound.sfx('chime');
+                  }}
+                />
+                <BigButton
+                  label="✏️ Masukkan Email Akun Manual"
+                  small
+                  color={colors.sunny}
+                  edge={colors.sunnyDark}
+                  onPress={() => setShowLoginModal(true)}
+                />
+              </View>
             </View>
           )}
         </View>
@@ -454,6 +468,19 @@ export function ProfilScreen() {
               <Text style={styles.modalWord}>Hubungkan Akun Google</Text>
               <Text style={styles.googleModalDesc}>
                 Data progres belajar anak akan dicadangkan secara aman. Kamu bisa mengaksesnya kembali kapan pun aplikasi diperbarui.
+              </Text>
+              <BigButton
+                label="🌐 Masuk Langsung via SSO Google"
+                color={colors.coral}
+                edge={colors.coralDark}
+                onPress={async () => {
+                  setShowLoginModal(false);
+                  await loginGoogleSSO();
+                  container.sound.sfx('chime');
+                }}
+              />
+              <Text style={{ fontFamily: fonts.heavy, fontSize: 12, color: colors.inkSoft, marginVertical: 4 }}>
+                — ATAU MASUKKAN MANUAL —
               </Text>
               <TextInput
                 style={styles.modalInput}

@@ -29,6 +29,7 @@ interface AppState {
   finishSession(level: number, stars: number): void;
   saveVoice(target: string, transcript: string, sim: number, stars: number): void;
   setMode(mode: 'pemula' | 'mandiri'): void;
+  loginGoogleSSO(): Promise<void>;
   loginGoogle(email?: string, name?: string): Promise<void>;
   logoutGoogle(): Promise<void>;
   syncCloud(): Promise<void>;
@@ -131,6 +132,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   setMode(mode) {
     set({ profile: { ...get().profile, mode } });
     repo.updateProfile({ mode }).catch(() => {});
+  },
+
+  async loginGoogleSSO() {
+    set({ isSyncing: true });
+    try {
+      const account = await sync.signInWithGoogleSSO();
+      set({
+        googleAccount: account,
+        isSyncing: false,
+        lastSyncMessage: `SSO Google berhasil! Data ${account.name} aman di Cloud! ☁️`,
+      });
+    } catch (e) {
+      set({ isSyncing: false, lastSyncMessage: 'Gagal login SSO Google.' });
+    }
   },
 
   async loginGoogle(email, name) {

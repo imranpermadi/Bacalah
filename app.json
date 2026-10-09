@@ -2,6 +2,7 @@
   "expo": {
     "name": "BACALAH",
     "slug": "bacalah",
+    "scheme": "bacalah",
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -38,7 +39,8 @@
         }
       ],
       "expo-asset",
-      "./plugins/with-slim-build"
+      "./plugins/with-slim-build",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {
