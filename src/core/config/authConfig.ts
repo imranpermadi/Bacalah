@@ -27,5 +27,5 @@ export const FREE_CLOUD_CONFIG = {
   projectId: 'bacalah-app',
   apiKey: 'AIzaSyDrVRKiZ26ElZaqRmsn15VxakJY6U84Wso', // Firebase Web API Key
   firestoreEndpoint: (collection: string, docId: string) =>
-    `https://firestore.googleapis.com/v1/projects/bacalah-app/databases/(default)/documents/${collection}/${docId}`,
+    `https://firestore.googleapis.com/v1/projects/bacalah-app/databases/(default)/documents/${collection}/${docId}?key=AIzaSyDrVRKiZ26ElZaqRmsn15VxakJY6U84Wso`,
 };

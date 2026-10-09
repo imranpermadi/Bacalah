@@ -18,6 +18,9 @@ import { BigButton, HearButtons, ScreenTitle } from '../../components/common/ui'
 import { MascotCici } from '../../components/play/MascotCici';
 import { AlphabetCard } from '../../components/play/AlphabetCard';
 import { VoiceMicButton } from '../../components/play/VoiceMicButton';
+import { CeritaMendidikModal } from '../../components/exploration/CeritaMendidikModal';
+import { KomikInteraktifModal } from '../../components/exploration/KomikInteraktifModal';
+import { PengetahuanAlamModal } from '../../components/exploration/PengetahuanAlamModal';
 import { useAppStore } from '../../stores/useAppStore';
 
 const { width } = Dimensions.get('window');
@@ -26,8 +29,13 @@ export function BelajarScreen() {
   const [activeLevel, setActiveLevel] = useState(1);
   const [selectedLetter, setSelectedLetter] = useState('A');
   const [ciciMood, setCiciMood] = useState<'idle' | 'talk' | 'happy' | 'hint'>('idle');
-  const [ciciMsg, setCiciMsg] = useState('Pilih huruf atau level belajar yang kamu mau ya! 🐱');
+  const [ciciMsg, setCiciMsg] = useState('Pilih petualangan membaca atau level belajar yang kamu mau ya! 🐱');
   
+  // Modals for 20 Stories, 20 Comics, and Science Facts
+  const [showCeritaModal, setShowCeritaModal] = useState(false);
+  const [showKomikModal, setShowKomikModal] = useState(false);
+  const [showSainsModal, setShowSainsModal] = useState(false);
+
   // Sentence quiz state for Level 6
   const [selectedSentenceIdx, setSelectedSentenceIdx] = useState(0);
   const [sentenceAnswered, setSentenceAnswered] = useState<string | null>(null);
@@ -313,8 +321,60 @@ export function BelajarScreen() {
       </ScreenTitle>
 
       {/* Mascot Cici Guide */}
-      <View style={{ marginVertical: 6 }}>
-        <MascotCici mood={ciciMood} message={ciciMsg} size={70} />
+      <View style={{ marginVertical: 4 }}>
+        <MascotCici mood={ciciMood} message={ciciMsg} size={66} />
+      </View>
+
+      {/* 🌟 Petualangan Membaca Cici: 20 Cerita, 20 Komik, Ensiklopedia Sains */}
+      <View style={styles.adventureSection}>
+        <Text style={styles.adventureHeader}>🌟 Menu Petualangan Literasi Anak:</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.adventureRow}
+        >
+          <Pressable
+            onPress={() => {
+              container.sound.sfx('pop');
+              setShowCeritaModal(true);
+            }}
+            style={[styles.adventureCard, { backgroundColor: '#FFFBEB', borderColor: '#FCD34D' }, raised('#F59E0B')]}
+          >
+            <Text style={styles.adventureCardEmoji}>📖</Text>
+            <View>
+              <Text style={styles.adventureCardTitle}>20 Cerita Kartun</Text>
+              <Text style={styles.adventureCardSub}>Animasi & Budi Pekerti</Text>
+            </View>
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              container.sound.sfx('pop');
+              setShowKomikModal(true);
+            }}
+            style={[styles.adventureCard, { backgroundColor: '#EFF6FF', borderColor: '#93C5FD' }, raised('#3B82F6')]}
+          >
+            <Text style={styles.adventureCardEmoji}>💬</Text>
+            <View>
+              <Text style={styles.adventureCardTitle}>20 Komik Suara</Text>
+              <Text style={styles.adventureCardSub}>Baca & Buka Balasan</Text>
+            </View>
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              container.sound.sfx('pop');
+              setShowSainsModal(true);
+            }}
+            style={[styles.adventureCard, { backgroundColor: '#ECFDF5', borderColor: '#6EE7B7' }, raised('#10B981')]}
+          >
+            <Text style={styles.adventureCardEmoji}>🌍</Text>
+            <View>
+              <Text style={styles.adventureCardTitle}>Pengetahuan Alam</Text>
+              <Text style={styles.adventureCardSub}>20 Fakta Sains Seru</Text>
+            </View>
+          </Pressable>
+        </ScrollView>
       </View>
 
       {/* Level Selector Bar */}
@@ -347,6 +407,20 @@ export function BelajarScreen() {
           )}
         {activeLevel === 6 && renderLevel6Sentences()}
       </ScrollView>
+
+      {/* Exploration Modals */}
+      <CeritaMendidikModal
+        visible={showCeritaModal}
+        onClose={() => setShowCeritaModal(false)}
+      />
+      <KomikInteraktifModal
+        visible={showKomikModal}
+        onClose={() => setShowKomikModal(false)}
+      />
+      <PengetahuanAlamModal
+        visible={showSainsModal}
+        onClose={() => setShowSainsModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -490,4 +564,41 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   sentenceNavRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
+  adventureSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  adventureHeader: {
+    fontFamily: fonts.black,
+    fontSize: 14,
+    color: colors.ink,
+    marginBottom: 6,
+  },
+  adventureRow: {
+    gap: 12,
+    paddingVertical: 4,
+  },
+  adventureCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    minWidth: 180,
+  },
+  adventureCardEmoji: {
+    fontSize: 28,
+  },
+  adventureCardTitle: {
+    fontFamily: fonts.black,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  adventureCardSub: {
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
 import { colors, fonts, radius, raised } from '../../../core/theme';
 import { SENTENCES } from '../../../data/content/curriculum';
@@ -10,7 +11,8 @@ import { GameShell, useGameSession } from '../GameShell';
 
 /**
  * 🕵️ Detektif Kalimat (Kata yang Hilang)
- * Tingkat Kesulitan Tinggi: Melengkapi kalimat rumpang dengan memilih kata yang tepat dari 4 opsi kata yang mirip.
+ * Tampilan diperbarui: Huruf pilihan kata ekstra besar (Font 28px, Bold Tebal),
+ * kontras tajam, tombol lebar, dan ramah anak.
  */
 export function DetektifKalimat({ onExit }: { onExit: () => void }) {
   const session = useGameSession('detektif-kalimat', 30);
@@ -27,9 +29,9 @@ export function DetektifKalimat({ onExit }: { onExit: () => void }) {
     const st = SENTENCES[session.round % SENTENCES.length] || SENTENCES[0];
     setCurrentSentence(st);
 
-    // Ganti kata jawaban di dalam kalimat dengan [ ... ]
+    // Ganti kata jawaban di dalam kalimat dengan tanda misteri [ ? ]
     const regex = new RegExp(`\\b${st.answer}\\b`, 'i');
-    const blank = st.text.replace(regex, '[ . . . ]');
+    const blank = st.text.replace(regex, '[  ❓  ]');
     setBlankSentenceText(blank);
 
     // Buat 4 opsi kata (1 benar + 3 pengecoh)
@@ -64,20 +66,23 @@ export function DetektifKalimat({ onExit }: { onExit: () => void }) {
 
   const hearSentence = () => {
     container.sound.speak(currentSentence.text);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const handleSelect = (word: string) => {
-    if (selectedWord) return; // hindari double tap
+    if (selectedWord) return;
     const isCorrect = word.toLowerCase() === currentSentence.answer.toLowerCase();
 
     if (isCorrect) {
       setSelectedWord(word);
       container.sound.sfx('chime');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       session.correct(`detektif-${currentSentence.id}`);
     } else {
       setWobbleWord(word);
       setWobbleToken((t) => t + 1);
       container.sound.sfx('boop');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       session.wrong();
     }
   };
@@ -93,12 +98,15 @@ export function DetektifKalimat({ onExit }: { onExit: () => void }) {
       <View style={styles.container}>
         {/* Mystery Sentence Card */}
         <View style={styles.mysteryCard}>
-          <Text style={styles.mysteryEmoji}>{currentSentence.emoji}</Text>
-          <Text style={styles.badge}>🔍 Cari Kata yang Hilang:</Text>
+          <View style={styles.mysteryHeaderRow}>
+            <Text style={styles.mysteryEmoji}>{currentSentence.emoji}</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>🔍 Cari Kata yang Hilang:</Text>
+            </View>
+          </View>
+
           <Text style={styles.sentenceText}>
-            {selectedWord
-              ? currentSentence.text
-              : blankSentenceText}
+            {selectedWord ? currentSentence.text : blankSentenceText}
           </Text>
 
           <BigButton
@@ -111,33 +119,42 @@ export function DetektifKalimat({ onExit }: { onExit: () => void }) {
         </View>
 
         <Text style={styles.instruction}>
-          Ketuk kartu kata yang tepat untuk melengkapi kalimat:
+          Pilih kata bertulisan besar yang tepat untuk mengisi kalimat:
         </Text>
 
-        {/* 4 Word Cards Grid */}
+        {/* 4 Large Word Option Cards */}
         <View style={styles.cardsGrid}>
           {options.map((opt) => {
             const isPicked = selectedWord === opt.word;
             const isWobbling = wobbleWord === opt.word;
             return (
-              <Wobble key={opt.word} token={isWobbling ? wobbleToken : 0}>
-                <Pressable
-                  onPress={() => handleSelect(opt.word)}
-                  style={[
-                    styles.card,
-                    raised(isPicked ? colors.mintDark : colors.line),
-                    {
-                      backgroundColor: isPicked ? colors.mint : '#FFFFFF',
-                      borderColor: isPicked ? colors.mintDark : colors.line,
-                    },
-                  ]}
-                >
-                  <Text style={styles.cardEmoji}>{opt.emoji}</Text>
-                  <Text style={[styles.cardWord, isPicked && { color: colors.ink }]}>
-                    {opt.word}
-                  </Text>
-                </Pressable>
-              </Wobble>
+              <View key={opt.word} style={styles.cardWrapper}>
+                <Wobble token={isWobbling ? wobbleToken : 0}>
+                  <Pressable
+                    onPress={() => handleSelect(opt.word)}
+                    style={[
+                      styles.card,
+                      raised(isPicked ? colors.mintDark : '#CBD5E1'),
+                      {
+                        backgroundColor: isPicked ? '#DCFCE7' : '#FFFFFF',
+                        borderColor: isPicked ? '#22C55E' : '#E2E8F0',
+                      },
+                    ]}
+                  >
+                    <Text style={styles.cardEmoji}>{opt.emoji}</Text>
+                    <Text
+                      style={[
+                        styles.cardWord,
+                        isPicked && { color: '#15803D' },
+                      ]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {opt.word.toUpperCase()}
+                    </Text>
+                  </Pressable>
+                </Wobble>
+              </View>
             );
           })}
         </View>
@@ -147,66 +164,77 @@ export function DetektifKalimat({ onExit }: { onExit: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, alignItems: 'center' },
+  container: { flex: 1, padding: 16, alignItems: 'center', gap: 10 },
   mysteryCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     padding: 16,
     alignItems: 'center',
     width: '100%',
     gap: 10,
-    borderBottomWidth: 4,
-    borderBottomColor: colors.line,
+    borderWidth: 2,
+    borderColor: '#FED7AA',
+    borderBottomWidth: 5,
   },
-  mysteryEmoji: { fontSize: 60 },
+  mysteryHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  mysteryEmoji: { fontSize: 44 },
   badge: {
-    fontFamily: fonts.heavy,
-    fontSize: 12,
-    color: colors.peachDark,
     backgroundColor: '#FFF0EA',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: radius.pill,
-    overflow: 'hidden',
+  },
+  badgeText: {
+    fontFamily: fonts.black,
+    fontSize: 13,
+    color: colors.peachDark,
   },
   sentenceText: {
     fontFamily: fonts.black,
-    fontSize: 22,
-    color: colors.ink,
+    fontSize: 24,
+    color: '#0F172A',
     textAlign: 'center',
-    lineHeight: 30,
+    lineHeight: 34,
     marginVertical: 4,
   },
   instruction: {
     fontFamily: fonts.heavy,
-    fontSize: 13,
+    fontSize: 14,
     color: colors.inkSoft,
     textAlign: 'center',
-    marginTop: 18,
-    marginBottom: 12,
+    marginTop: 6,
+    marginBottom: 4,
   },
   cardsGrid: {
     width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 12,
+    rowGap: 12,
+  },
+  cardWrapper: {
+    width: '48%',
   },
   card: {
-    width: '48%',
-    borderRadius: radius.md,
-    padding: 14,
+    width: '100%',
+    borderRadius: radius.lg,
+    paddingVertical: 16,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    borderWidth: 2,
-    minHeight: 90,
+    gap: 8,
+    borderWidth: 2.5,
+    minHeight: 105,
   },
-  cardEmoji: { fontSize: 32 },
+  cardEmoji: { fontSize: 38 },
   cardWord: {
     fontFamily: fonts.black,
-    fontSize: 20,
-    color: colors.ink,
+    fontSize: 28,
+    color: '#0F172A',
+    letterSpacing: 1.5,
   },
 });
-

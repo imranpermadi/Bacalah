@@ -109,20 +109,41 @@ export class CloudSyncService {
   }
 
   /**
-   * Menghubungkan akun Google secara langsung / manual.
+   * Menghubungkan akun menggunakan input email langsung (Direct Email Login)
+   * Tanpa perlu Google SSO popup yang rawan diblokir OAuth, dan otomatis sinkron ke Firestore!
    */
   async signInWithGoogle(customEmail?: string, customName?: string): Promise<GoogleAccount> {
-    const email = customEmail?.trim() || 'orangtua.bacalah@gmail.com';
-    const name = customName?.trim() || 'Keluarga Cerdas Cici';
+    const rawEmail = customEmail?.trim().toLowerCase() || 'keluarga.bacalah@gmail.com';
+    const safeId = 'user_' + rawEmail.replace(/[^a-z0-9]/g, '_');
+    const name = customName?.trim() || rawEmail.split('@')[0] || 'Orang Tua Hebat';
+
     const account: GoogleAccount = {
-      id: `google_${Date.now()}`,
-      email,
+      id: safeId,
+      email: rawEmail,
       name,
       photoUrl: null,
       lastSyncedAt: Date.now(),
     };
     await this.repo.saveGoogleAccount(account);
-    await this.repo.getBackupSnapshot();
+
+    // Coba unduh data yang sudah ada di Firebase Firestore untuk akun ini jika ada:
+    if (FREE_CLOUD_CONFIG.apiKey) {
+      try {
+        const checkRes = await fetch(FREE_CLOUD_CONFIG.firestoreEndpoint('backups', safeId));
+        if (checkRes.ok) {
+          const docData = await checkRes.json();
+          const remoteSnapshot = docData?.fields?.payload?.stringValue;
+          if (remoteSnapshot) {
+            await this.repo.restoreBackupSnapshot(remoteSnapshot);
+          }
+        }
+      } catch {
+        // Fallback SQLite lokal
+      }
+    }
+
+    // Pastikan sinkronisasi awal tersimpan
+    await this.syncToCloud();
     return account;
   }
 

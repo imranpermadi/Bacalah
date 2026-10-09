@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   Pressable,
@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
 import { colors, fonts, levelMeta, radius, raised, spacing } from '../../../core/theme';
 import { randomHint, randomPraise } from '../../../data/content/feedback';
@@ -23,7 +24,8 @@ import { VoiceResult } from '../../../core/sound/VoiceEvaluatorService';
 import { useAppStore } from '../../stores/useAppStore';
 
 const { width } = Dimensions.get('window');
-const SESSION_SIZE = 30; // Minimal 30 varian soal per level
+const SESSION_SIZE = 30; // 30 varian soal per level
+const TIME_LIMIT_SECONDS = 20;
 
 export function DikteKuisScreen() {
   const profile = useAppStore((s) => s.profile);
@@ -31,7 +33,9 @@ export function DikteKuisScreen() {
   const weights = useAppStore((s) => s.weights);
   const recordLetter = useAppStore((s) => s.recordLetter);
   const finishSession = useAppStore((s) => s.finishSession);
-  const setMode = useAppStore((s) => s.setMode);
+
+  // Mode Pengganti: Opsi 2 (Susun Balok Suku Kata) & Opsi 3 (Tantangan Kilat Bintang Emas)
+  const [dikteMode, setDikteMode] = useState<'balok' | 'kilat'>('balok');
 
   const [activeLevel, setActiveLevel] = useState(1);
   const [exercises, setExercises] = useState<DictationExercise[]>([]);
@@ -40,10 +44,14 @@ export function DikteKuisScreen() {
   const [mistakesThisQuestion, setMistakesThisQuestion] = useState(0);
   const [totalCorrectFirstTry, setTotalCorrectFirstTry] = useState(0);
 
+  // Timer untuk Opsi 3: Tantangan Kilat (20 detik)
+  const [timeLeft, setTimeLeft] = useState(TIME_LIMIT_SECONDS);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Mascot Cici Feedback State
   const [ciciMood, setCiciMood] = useState<Mood>('idle');
   const [ciciMoodToken, setCiciMoodToken] = useState(0);
-  const [ciciMessage, setCiciMessage] = useState('Dengarkan baik-baik ya, lalu ketik hurufnya! 🎧');
+  const [ciciMessage, setCiciMessage] = useState('Dengarkan baik-baik suara Cici, lalu susun jawabannya! 🐱');
 
   // Input Slot Wobble & Key Wobble
   const [slotWobbleToken, setSlotWobbleToken] = useState(0);
@@ -60,7 +68,7 @@ export function DikteKuisScreen() {
   const isLevelUnlocked = (lvlNum: number) => {
     if (lvlNum === 1) return true;
     const item = levels.find((l) => l.level === lvlNum);
-    return item ? item.unlocked : (profile.unlockedLevel >= lvlNum);
+    return item ? item.unlocked : profile.unlockedLevel >= lvlNum;
   };
 
   // Load exercises when level changes or after restarting
@@ -74,6 +82,7 @@ export function DikteKuisScreen() {
     setIsSessionComplete(false);
     setUnlockedNextSuccess(false);
     sessionSaved.current = false;
+    setTimeLeft(TIME_LIMIT_SECONDS);
     setCiciMood('idle');
     setCiciMessage('Ayo mulai! Tekan tombol Dengar Cici bila perlu! 🐱');
   };
@@ -93,7 +102,56 @@ export function DikteKuisScreen() {
     return () => clearTimeout(t);
   }, [currentIndex, currentExercise, isSessionComplete]);
 
-  // Handle letter tapped on BubbleKeyboard
+  // Timer Effect for Mode Tantangan Kilat (Opsi 3)
+  useEffect(() => {
+    if (dikteMode !== 'kilat' || isSessionComplete || !currentExercise) return;
+    setTimeLeft(TIME_LIMIT_SECONDS);
+
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          setCiciMood('hint');
+          setCiciMessage('Waktu habis! Cici bantu beri petunjuk bunyinya ya! ⏳');
+          container.sound.sfx('boop');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [currentIndex, dikteMode, isSessionComplete, currentExercise]);
+
+  // Handle syllable block pressed in Opsi 2 (Susun Balok Suku Kata)
+  const handleSyllableBlockPress = (syl: string) => {
+    if (!currentExercise || isSessionComplete) return;
+
+    const remainingTarget = currentExercise.target.slice(typed.length);
+    if (remainingTarget.toUpperCase().startsWith(syl.toUpperCase())) {
+      const nextTyped = typed + syl.toUpperCase();
+      setTyped(nextTyped);
+      container.sound.sfx('pop');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      if (nextTyped.length === currentExercise.target.length) {
+        handleQuestionCompleted();
+      }
+    } else {
+      setMistakesThisQuestion((m) => m + 1);
+      setSlotWobbleToken((t) => t + 1);
+      container.sound.sfx('boop');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setCiciMood('hint');
+      setCiciMessage(randomHint());
+    }
+  };
+
+  // Handle letter press in Keyboard
   const handleLetterPress = (pressedLetter: string) => {
     if (!currentExercise || isSessionComplete) return;
 
@@ -103,84 +161,70 @@ export function DikteKuisScreen() {
     if (!targetChar) return;
 
     const isMatch = pressedLetter.toUpperCase() === targetChar.toUpperCase();
-
-    // Dynamically update accuracy stats in SQLite for weak letter tracking
     recordLetter(targetChar, isMatch, pressedLetter);
 
     if (isMatch) {
       const nextTyped = typed + targetChar;
       setTyped(nextTyped);
       container.sound.sfx('pop');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // Check if word / target completed
       if (nextTyped.length === currentExercise.target.length) {
-        if (mistakesThisQuestion === 0) {
-          setTotalCorrectFirstTry((prev) => prev + 1);
-        }
-        setCiciMood('happy');
-        setCiciMoodToken((t) => t + 1);
-        setCiciMessage(randomPraise());
-        container.sound.sfx('chime');
-
-        setTimeout(() => {
-          if (currentIndex + 1 >= exercises.length) {
-            handleCompleteSession();
-          } else {
-            setCurrentIndex((i) => i + 1);
-            setTyped('');
-            setMistakesThisQuestion(0);
-            setCiciMood('idle');
-            setCiciMessage('Luar biasa! Lanjut ke soal berikutnya! ✨');
-          }
-        }, 1100);
+        handleQuestionCompleted();
       }
     } else {
-      // Gentle feedback: wobble, no scary buzzer
       setMistakesThisQuestion((m) => m + 1);
       setSlotWobbleToken((t) => t + 1);
       setWobbleKey({ letter: pressedLetter, token: wobbleKey.token + 1 });
       container.sound.sfx('boop');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setCiciMood('hint');
-      setCiciMoodToken((t) => t + 1);
       setCiciMessage(randomHint());
     }
   };
 
-  const handleCompleteSession = async () => {
-    setIsSessionComplete(true);
-    const total = exercises.length || 1;
-    const accuracy = (totalCorrectFirstTry / total) * 100;
-    // Opsi A: minimal akurasi 80%
-    const passed = accuracy >= 80;
-    const starsWon = accuracy >= 90 ? 3 : accuracy >= 80 ? 2 : 1;
+  const handleQuestionCompleted = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
 
-    if (!sessionSaved.current) {
-      sessionSaved.current = true;
-      const res = await finishSession(activeLevel, starsWon);
-      setUnlockedNextSuccess(res.unlockedNext);
-      if (passed) {
-        container.sound.sfx('clap');
-      } else {
-        container.sound.sfx('boop');
-      }
+    if (mistakesThisQuestion === 0) {
+      setTotalCorrectFirstTry((prev) => prev + 1);
     }
+    setCiciMood('happy');
+    setCiciMoodToken((t) => t + 1);
+    setCiciMessage(
+      dikteMode === 'kilat' && timeLeft > 0
+        ? '⚡ Kilat Sekali! Kamu dapat Bonus Bintang Emas! 🌟🌟'
+        : randomPraise()
+    );
+    container.sound.sfx('chime');
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    setTimeout(() => {
+      if (currentIndex + 1 >= exercises.length) {
+        handleCompleteSession();
+      } else {
+        setCurrentIndex((i) => i + 1);
+        setTyped('');
+        setMistakesThisQuestion(0);
+        setCiciMood('idle');
+        setCiciMessage('Luar biasa! Lanjut ke soal berikutnya! ✨');
+      }
+    }, 1100);
   };
 
-  // Handle voice speech recognition result in Dictation
   const handleVoiceResult = (res: VoiceResult) => {
     if (!currentExercise || isSessionComplete) return;
-    if (res.similarity >= 0.55 || res.stars >= 2) {
-      for (const ch of currentExercise.target) {
-        recordLetter(ch, true);
-      }
+
+    if (res.stars >= 2) {
       setTyped(currentExercise.target);
       if (mistakesThisQuestion === 0) {
         setTotalCorrectFirstTry((prev) => prev + 1);
       }
       setCiciMood('happy');
       setCiciMoodToken((t) => t + 1);
-      setCiciMessage('Hebat sekali! Lafalmu jelas dan tepat! 🎤🌟');
+      setCiciMessage(`Hebat! Lafalmu jelas sekali (${Math.round(res.similarity * 100)}%)! 🎤✨`);
       container.sound.sfx('chime');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       setTimeout(() => {
         if (currentIndex + 1 >= exercises.length) {
@@ -196,20 +240,54 @@ export function DikteKuisScreen() {
     }
   };
 
-  // Determine keyboard letters for Adaptive Scaffolding
-  const currentKeyLetters = React.useMemo(() => {
-    if (!currentExercise) return [];
-    if (profile.mode === 'mandiri') {
-      return []; // empty array means full 26 letters A-Z
+  const handleCompleteSession = async () => {
+    if (sessionSaved.current) return;
+    sessionSaved.current = true;
+
+    setIsSessionComplete(true);
+    const totalQuestions = exercises.length || SESSION_SIZE;
+    const finalAccuracy = Math.round((totalCorrectFirstTry / totalQuestions) * 100);
+    const passed = finalAccuracy >= 80;
+
+    let starsEarned = 1;
+    if (finalAccuracy >= 90) starsEarned = 3;
+    else if (finalAccuracy >= 80) starsEarned = 2;
+
+    if (passed) {
+      const nextLevelToUnlock = activeLevel + 1;
+      if (nextLevelToUnlock <= 6) {
+        setUnlockedNextSuccess(true);
+      }
     }
+
+    try {
+      await finishSession(activeLevel, starsEarned);
+    } catch (e) {
+      console.warn('Gagal menyimpan sesi:', e);
+    }
+  };
+
+  // Syllable tiles generator for Mode Opsi 2 (Susun Balok Suku Kata)
+  const syllableTiles = useMemo(() => {
+    if (!currentExercise) return [];
+    const parts = currentExercise.slowParts && currentExercise.slowParts.length > 0
+      ? currentExercise.slowParts
+      : currentExercise.target.split('');
+
+    const distractors = ['BA', 'KI', 'DA', 'MA', 'RO', 'TI', 'SU'].filter(
+      (d) => !parts.map((p) => p.toUpperCase()).includes(d)
+    ).slice(0, 2);
+
+    return [...parts.map((p) => p.toUpperCase()), ...distractors].sort(
+      () => Math.random() - 0.5
+    );
+  }, [currentExercise]);
+
+  const currentKeyLetters = useMemo(() => {
+    if (!currentExercise) return [];
     const targetChar = currentExercise.target[typed.length] || currentExercise.target[0];
     return DictationGenerator.choices(targetChar, 4, weights);
-  }, [currentExercise, typed, profile.mode, weights]);
-
-  const highlightChar =
-    mistakesThisQuestion >= 2 && currentExercise
-      ? currentExercise.target[typed.length]
-      : null;
+  }, [currentExercise, typed, weights]);
 
   const totalQuestions = exercises.length || SESSION_SIZE;
   const accuracyPercent = Math.round((totalCorrectFirstTry / totalQuestions) * 100);
@@ -218,43 +296,51 @@ export function DikteKuisScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenTitle sub="Dengarkan Suara Cici, Lalu Ketik atau Ucapkan!">
+      <ScreenTitle sub="Dengarkan Suara Cici, Lalu Susun Balok atau Selesaikan Kilat!">
         Dikte Cerdas Cici 📝
       </ScreenTitle>
 
-      {/* Scaffolding Mode & Level Switcher */}
+      {/* Mode Switcher: Opsi 2 vs Opsi 3 */}
       <View style={styles.controlRow}>
         <View style={styles.modeSwitch}>
           <Pressable
-            onPress={() => setMode('pemula')}
+            onPress={() => {
+              setDikteMode('balok');
+              container.sound.sfx('pop');
+              Haptics.selectionAsync();
+            }}
             style={[
               styles.modeBtn,
-              profile.mode === 'pemula' && styles.modeBtnActive,
+              dikteMode === 'balok' && styles.modeBtnActive,
             ]}
           >
             <Text
               style={[
                 styles.modeBtnText,
-                profile.mode === 'pemula' && styles.modeBtnTextActive,
+                dikteMode === 'balok' && styles.modeBtnTextActive,
               ]}
             >
-              🐣 Pemula (4 Huruf)
+              🧩 Susun Suku Kata
             </Text>
           </Pressable>
           <Pressable
-            onPress={() => setMode('mandiri')}
+            onPress={() => {
+              setDikteMode('kilat');
+              container.sound.sfx('pop');
+              Haptics.selectionAsync();
+            }}
             style={[
               styles.modeBtn,
-              profile.mode === 'mandiri' && styles.modeBtnActive,
+              dikteMode === 'kilat' && styles.modeBtnActive,
             ]}
           >
             <Text
               style={[
                 styles.modeBtnText,
-                profile.mode === 'mandiri' && styles.modeBtnTextActive,
+                dikteMode === 'kilat' && styles.modeBtnTextActive,
               ]}
             >
-              🦁 Mandiri (A–Z)
+              ⚡ Tantangan Kilat (20s)
             </Text>
           </Pressable>
         </View>
@@ -278,7 +364,7 @@ export function DikteKuisScreen() {
                     container.sound.sfx('boop');
                     setCiciMood('hint');
                     setCiciMessage(
-                      `Level ${l.level} masih terkunci 🔒! Selesaikan Level ${l.level - 1} dengan minimal 80% akurasi dulu ya!`
+                      `Level ${l.level} masih terkunci 🔒! Kamu harus lulus Level ${l.level - 1} dengan minimal 80% (2 ⭐) dahulu ya!`
                     );
                     return;
                   }
@@ -292,8 +378,8 @@ export function DikteKuisScreen() {
                       ? l.color
                       : unlocked
                       ? '#FFFFFF'
-                      : '#E0DDD2',
-                    opacity: unlocked ? 1 : 0.6,
+                      : '#E0DDD3',
+                    opacity: unlocked ? 1 : 0.65,
                   },
                   raised(isSelected ? colors.sunnyDark : colors.line),
                 ]}
@@ -336,9 +422,7 @@ export function DikteKuisScreen() {
                 label={`🚀 Lanjut ke Level ${activeLevel + 1}`}
                 color={colors.mint}
                 edge={colors.mintDark}
-                onPress={() => {
-                  setActiveLevel(activeLevel + 1);
-                }}
+                onPress={() => setActiveLevel(activeLevel + 1)}
               />
             ) : null}
 
@@ -378,6 +462,27 @@ export function DikteKuisScreen() {
                 </View>
               </View>
 
+              {/* Countdown Bar in Tantangan Kilat (Opsi 3) */}
+              {dikteMode === 'kilat' && (
+                <View style={styles.timerContainer}>
+                  <View style={styles.timerHeaderRow}>
+                    <Text style={styles.timerLabel}>⚡ Waktu Kilat: {timeLeft}s</Text>
+                    <Text style={styles.timerBonusBadge}>Bonus 🌟🌟</Text>
+                  </View>
+                  <View style={styles.timerTrack}>
+                    <View
+                      style={[
+                        styles.timerFill,
+                        {
+                          width: `${(timeLeft / TIME_LIMIT_SECONDS) * 100}%`,
+                          backgroundColor: timeLeft <= 5 ? '#EF4444' : '#F59E0B',
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
+              )}
+
               <View style={styles.actionSection}>
                 <HearButtons
                   text={currentExercise.speakText}
@@ -406,17 +511,40 @@ export function DikteKuisScreen() {
             </View>
           ) : null}
 
-          {/* Custom BubbleKeyboard (Tactile 3D, Kid-friendly) */}
-          <View style={styles.keyboardContainer}>
-            <BubbleKeyboard
-              letters={currentKeyLetters}
-              onPress={handleLetterPress}
-              highlightLetter={highlightChar}
-              wobbleLetter={wobbleKey.letter}
-              wobbleToken={wobbleKey.token}
-              width={width}
-            />
-          </View>
+          {/* OPSI 2: Balok Suku Kata Picker */}
+          {dikteMode === 'balok' ? (
+            <View style={styles.syllablePickerArena}>
+              <Text style={styles.pickerInstruction}>
+                Ketuk balok suku kata di bawah secara berurutan:
+              </Text>
+              <View style={styles.syllableGrid}>
+                {syllableTiles.map((syl, i) => (
+                  <Pressable
+                    key={`${syl}-${i}`}
+                    onPress={() => handleSyllableBlockPress(syl)}
+                    style={[
+                      styles.syllableTile,
+                      raised('#F59E0B'),
+                    ]}
+                  >
+                    <Text style={styles.syllableTileText}>{syl}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : (
+            /* OPSI 3: BubbleKeyboard dengan Timer Kilat */
+            <View style={styles.keyboardContainer}>
+              <BubbleKeyboard
+                letters={currentKeyLetters}
+                onPress={handleLetterPress}
+                highlightLetter={mistakesThisQuestion >= 2 ? currentExercise?.target[typed.length] || null : null}
+                wobbleLetter={wobbleKey.letter}
+                wobbleToken={wobbleKey.token}
+                width={width}
+              />
+            </View>
+          )}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -478,10 +606,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 5,
     borderBottomColor: colors.line,
   },
-  actionSection: {
-    alignItems: 'center',
-    gap: 8,
-  },
   progressRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -493,7 +617,84 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.inkSoft,
   },
+  timerContainer: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: radius.md,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  timerHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  timerLabel: {
+    fontFamily: fonts.black,
+    fontSize: 13,
+    color: '#92400E',
+  },
+  timerBonusBadge: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: '#D97706',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
+  timerTrack: {
+    height: 8,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  timerFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  actionSection: {
+    alignItems: 'center',
+    gap: 8,
+  },
   slotContainer: { marginVertical: 14, alignItems: 'center' },
+  syllablePickerArena: {
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 10,
+  },
+  pickerInstruction: {
+    fontFamily: fonts.heavy,
+    fontSize: 14,
+    color: colors.inkSoft,
+    textAlign: 'center',
+  },
+  syllableGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+    width: '100%',
+  },
+  syllableTile: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FCD34D',
+    borderWidth: 2,
+    paddingVertical: 14,
+    paddingHorizontal: 22,
+    borderRadius: radius.lg,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  syllableTileText: {
+    fontFamily: fonts.black,
+    fontSize: 26,
+    color: '#78350F',
+    letterSpacing: 1,
+  },
   keyboardContainer: {
     paddingHorizontal: 8,
     paddingTop: 8,

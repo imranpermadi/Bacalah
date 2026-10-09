@@ -32,6 +32,11 @@ const AVAILABLE_AVATARS = [
   { emoji: '🦊', label: 'Rubah Cerdik' },
 ];
 
+const MONTH_NAMES = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
 export function ProfileSelectScreen() {
   const profiles = useAppStore((s) => s.profiles);
   const selectProfile = useAppStore((s) => s.selectProfile);
@@ -44,6 +49,19 @@ export function ProfileSelectScreen() {
   const [childName, setChildName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState('🐱');
+
+  // Interactive Date Picker State
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerDay, setPickerDay] = useState(1);
+  const [pickerMonth, setPickerMonth] = useState(0); // 0 = Januari
+  const [pickerYear, setPickerYear] = useState(2020);
+
+  const handleApplyDate = () => {
+    const formatted = `${pickerDay} ${MONTH_NAMES[pickerMonth]} ${pickerYear}`;
+    setBirthDate(formatted);
+    setShowDatePicker(false);
+    container.sound.sfx('pop');
+  };
 
   const handleSelect = async (profileId: number) => {
     container.sound.sfx('pop');
@@ -241,17 +259,27 @@ export function ProfileSelectScreen() {
                 onChangeText={setChildName}
               />
 
-              {/* Birthdate Input */}
-              <Text style={styles.label}>Tanggal Lahir (Opsional):</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="mis. 15 Mei 2020 / YYYY-MM-DD"
-                placeholderTextColor={colors.inkSoft}
-                value={birthDate}
-                onChangeText={setBirthDate}
-              />
+              {/* Interactive Birthdate Selector */}
+              <Text style={styles.label}>Tanggal Lahir Anak:</Text>
+              <Pressable
+                onPress={() => {
+                  container.sound.sfx('pop');
+                  setShowDatePicker(true);
+                }}
+                style={styles.datePickerTrigger}
+              >
+                <Text style={styles.datePickerTriggerEmoji}>📅</Text>
+                <Text
+                  style={[
+                    styles.datePickerTriggerText,
+                    !birthDate && { color: colors.inkSoft },
+                  ]}
+                >
+                  {birthDate ? birthDate : 'Ketuk untuk Pilih Tanggal Lahir (Tanpa Ketik)'}
+                </Text>
+              </Pressable>
 
-              <View style={{ gap: 8, marginTop: 8, width: '100%' }}>
+              <View style={{ gap: 8, marginTop: 12, width: '100%' }}>
                 <BigButton
                   label="✅ Simpan Profil Anak"
                   color={colors.mint}
@@ -267,6 +295,135 @@ export function ProfileSelectScreen() {
               </View>
             </View>
           </View>
+
+          {/* Interactive Date Picker Sub-Modal */}
+          {showDatePicker && (
+            <Modal visible transparent animationType="fade" onRequestClose={() => setShowDatePicker(false)}>
+              <View style={styles.dateModalOverlay}>
+                <View style={styles.dateModalBox}>
+                  <Text style={styles.dateModalTitle}>📅 Pilih Tanggal Lahir Anak</Text>
+
+                  {/* Quick Age Select Chips */}
+                  <Text style={styles.pickerSubLabel}>⚡ Pilih Cepat Berdasarkan Umur:</Text>
+                  <View style={styles.quickAgeRow}>
+                    {[
+                      { label: '👶 4 Thn', year: 2022 },
+                      { label: '👦 5 Thn', year: 2021 },
+                      { label: '👧 6 Thn', year: 2020 },
+                      { label: '🧒 7 Thn', year: 2019 },
+                      { label: '🧑 8 Thn', year: 2018 },
+                    ].map((qa) => (
+                      <Pressable
+                        key={qa.label}
+                        onPress={() => {
+                          setPickerYear(qa.year);
+                          container.sound.sfx('tap');
+                        }}
+                        style={[
+                          styles.quickAgeChip,
+                          pickerYear === qa.year && styles.quickAgeChipActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.quickAgeText,
+                            pickerYear === qa.year && styles.quickAgeTextActive,
+                          ]}
+                        >
+                          {qa.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  {/* Day Selector */}
+                  <Text style={styles.pickerSubLabel}>Hari (1 - 31):</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chipRowPicker}
+                  >
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                      <Pressable
+                        key={d}
+                        onPress={() => {
+                          setPickerDay(d);
+                          container.sound.sfx('tap');
+                        }}
+                        style={[styles.numChip, pickerDay === d && styles.numChipActive]}
+                      >
+                        <Text style={[styles.numChipText, pickerDay === d && styles.numChipTextActive]}>
+                          {d}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+
+                  {/* Month Selector */}
+                  <Text style={styles.pickerSubLabel}>Bulan:</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chipRowPicker}
+                  >
+                    {MONTH_NAMES.map((m, idx) => (
+                      <Pressable
+                        key={m}
+                        onPress={() => {
+                          setPickerMonth(idx);
+                          container.sound.sfx('tap');
+                        }}
+                        style={[styles.numChip, pickerMonth === idx && styles.numChipActive]}
+                      >
+                        <Text style={[styles.numChipText, pickerMonth === idx && styles.numChipTextActive]}>
+                          {m}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+
+                  {/* Year Selector */}
+                  <Text style={styles.pickerSubLabel}>Tahun Lahir:</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chipRowPicker}
+                  >
+                    {[2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025].map((y) => (
+                      <Pressable
+                        key={y}
+                        onPress={() => {
+                          setPickerYear(y);
+                          container.sound.sfx('tap');
+                        }}
+                        style={[styles.numChip, pickerYear === y && styles.numChipActive]}
+                      >
+                        <Text style={[styles.numChipText, pickerYear === y && styles.numChipTextActive]}>
+                          {y}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+
+                  <View style={{ marginTop: 14, gap: 8, width: '100%' }}>
+                    <BigButton
+                      label={`✅ Gunakan: ${pickerDay} ${MONTH_NAMES[pickerMonth]} ${pickerYear}`}
+                      color={colors.mint}
+                      edge={colors.mintDark}
+                      onPress={handleApplyDate}
+                    />
+                    <BigButton
+                      label="Batal"
+                      small
+                      color="#EEE"
+                      edge="#DDD"
+                      onPress={() => setShowDatePicker(false)}
+                    />
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          )}
         </Modal>
       )}
     </SafeAreaView>
@@ -473,6 +630,104 @@ const styles = StyleSheet.create({
     color: colors.ink,
     borderWidth: 1.5,
     borderColor: '#E8E1CF',
+  },
+  datePickerTrigger: {
+    width: '100%',
+    backgroundColor: '#F8F6EE',
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: '#E8E1CF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  datePickerTriggerEmoji: { fontSize: 20 },
+  datePickerTriggerText: {
+    fontFamily: fonts.heavy,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  dateModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  dateModalBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: radius.xl,
+    padding: 20,
+    width: '100%',
+    maxWidth: 380,
+    gap: 8,
+  },
+  dateModalTitle: {
+    fontFamily: fonts.black,
+    fontSize: 17,
+    color: colors.ink,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  pickerSubLabel: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 6,
+  },
+  quickAgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  quickAgeChip: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  quickAgeChipActive: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+  },
+  quickAgeText: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.inkSoft,
+  },
+  quickAgeTextActive: {
+    color: '#92400E',
+  },
+  chipRowPicker: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  numChip: {
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 44,
+  },
+  numChipActive: {
+    backgroundColor: colors.coral,
+    borderColor: colors.coralDark,
+  },
+  numChipText: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.ink,
+  },
+  numChipTextActive: {
+    color: '#FFFFFF',
   },
 });
 
