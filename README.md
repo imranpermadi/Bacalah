@@ -174,3 +174,4 @@ Scan QR code yang tampil di terminal menggunakan aplikasi **Expo Go** pada HP An
 ## 📄 Lisensi
 Proyek ini dilisensikan di bawah lisensi [MIT](LICENSE).
 Dikembangkan dengan penuh dedikasi untuk pendidikan membaca anak-anak Indonesia. 🇮🇩✨
+
