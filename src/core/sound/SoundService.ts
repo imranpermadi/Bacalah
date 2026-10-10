@@ -6,7 +6,7 @@ export const RATE_SLOW = 0.6;
 const PITCH = 1.15;
 const LANG = 'id-ID';
 
-export type SfxName = 'tap' | 'pop' | 'boop' | 'chime' | 'clap';
+export type SfxName = 'tap' | 'pop' | 'boop' | 'chime' | 'clap' | 'swoosh';
 
 const SFX_SOURCES: Record<SfxName, number> = {
   tap: require('../../../assets/sfx/tap.wav'),
@@ -14,6 +14,7 @@ const SFX_SOURCES: Record<SfxName, number> = {
   boop: require('../../../assets/sfx/boop.wav'),
   chime: require('../../../assets/sfx/chime.wav'),
   clap: require('../../../assets/sfx/clap.wav'),
+  swoosh: require('../../../assets/sfx/swoosh.wav'),
 };
 
 /** TTS Cici (id-ID, pitch ramah anak) + SFX lembut. */

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
+  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -25,6 +26,8 @@ import { MascotCici } from '../play/MascotCici';
 import { VoiceMicButton } from '../play/VoiceMicButton';
 import { EDUCATIONAL_STORIES, EducationalStory } from '../../../data/content/storiesData';
 import { AnimatedStoryScene } from './AnimatedStoryScene';
+import { StoryCard3D } from './StoryCard3D';
+import { StaggeredEntrance } from '../motion/StaggeredEntrance';
 
 const { width } = Dimensions.get('window');
 
@@ -132,49 +135,34 @@ export function CeritaMendidikModal({
           </Pressable>
         </View>
 
-        {/* Story List View */}
+        {/* Story List View via FlatList & Staggered 3D Cards */}
         {!selectedStory ? (
-          <ScrollView contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false}>
-            <View style={styles.bannerBox}>
-              <Text style={styles.bannerEmoji}>📚✨</Text>
-              <Text style={styles.bannerTitle}>Koleksi 20 Cerita Bergambar</Text>
-              <Text style={styles.bannerSubtitle}>
-                Melatih anak membaca kalimat panjang dengan nilai kejujuran, tolong-menolong, dan persahabatan!
-              </Text>
-            </View>
-
-            <View style={styles.storyGrid}>
-              {EDUCATIONAL_STORIES.map((story, idx) => (
-                <Pressable
-                  key={story.id}
-                  onPress={() => handleOpenStory(story)}
-                  style={[
-                    styles.storyCard,
-                    { borderTopColor: story.themeColor, borderTopWidth: 6 },
-                    raised(colors.line),
-                  ]}
-                >
-                  <View style={styles.storyCardTop}>
-                    <Text style={styles.storyCoverEmoji}>{story.coverEmoji}</Text>
-                    <View style={styles.badgeCategory}>
-                      <Text style={styles.badgeCategoryText}>{story.category}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.storyCardNumber}>Cerita #{idx + 1}</Text>
-                  <Text style={styles.storyCardTitle} numberOfLines={2}>
-                    {story.title}
+          <FlatList
+            data={EDUCATIONAL_STORIES}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={5}
+            maxToRenderPerBatch={6}
+            ListHeaderComponent={
+              <StaggeredEntrance index={0}>
+                <View style={styles.bannerBox}>
+                  <Text style={styles.bannerEmoji}>📚✨</Text>
+                  <Text style={styles.bannerTitle}>Koleksi 20 Cerita Bergambar</Text>
+                  <Text style={styles.bannerSubtitle}>
+                    Melatih anak membaca kalimat panjang dengan nilai kejujuran, tolong-menolong, dan persahabatan!
                   </Text>
-                  <Text style={styles.storyMoralText} numberOfLines={2}>
-                    💡 {story.moral}
-                  </Text>
-                  <View style={styles.readNowRow}>
-                    <Text style={styles.readNowText}>Baca Cerita →</Text>
-                    <Text style={styles.pageCountBadge}>{story.pages.length} Halaman</Text>
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          </ScrollView>
+                </View>
+              </StaggeredEntrance>
+            }
+            renderItem={({ item, index }) => (
+              <StoryCard3D
+                story={item}
+                index={index + 1}
+                onOpen={handleOpenStory}
+              />
+            )}
+          />
         ) : isCompleted ? (
           /* Completion Celebration View */
           <View style={styles.completeContainer}>

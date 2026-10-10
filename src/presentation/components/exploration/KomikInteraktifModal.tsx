@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
+  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -23,6 +24,8 @@ import { colors, fonts, radius, raised } from '../../../core/theme';
 import { BigButton } from '../common/ui';
 import { VoiceMicButton } from '../play/VoiceMicButton';
 import { INTERACTIVE_COMICS, InteractiveComic } from '../../../data/content/comicsData';
+import { ComicCard3D } from './ComicCard3D';
+import { StaggeredEntrance } from '../motion/StaggeredEntrance';
 
 const { width } = Dimensions.get('window');
 
@@ -186,41 +189,33 @@ export function KomikInteraktifModal({
         </View>
 
         {!selectedComic ? (
-          /* Comic Selection List */
-          <ScrollView contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false}>
-            <View style={styles.bannerBox}>
-              <Text style={styles.bannerEmoji}>🎙️💬✨</Text>
-              <Text style={styles.bannerTitle}>20 Komik Percakapan Suara</Text>
-              <Text style={styles.bannerSubtitle}>
-                Format komik kartun asli! Baca balon percakapan di atas karakter dengan mikrofon. Jika benar, lawan bicara akan merespons dengan animasi dan suara!
-              </Text>
-            </View>
-
-            <View style={styles.comicGrid}>
-              {INTERACTIVE_COMICS.map((comic) => (
-                <Pressable
-                  key={comic.id}
-                  onPress={() => handleOpenComic(comic)}
-                  style={[
-                    styles.comicCard,
-                    { borderLeftColor: comic.accentColor, borderLeftWidth: 6 },
-                    raised(colors.line),
-                  ]}
-                >
-                  <View style={styles.comicCardLeft}>
-                    <Text style={styles.comicEmoji}>{comic.coverEmoji}</Text>
-                  </View>
-                  <View style={styles.comicCardRight}>
-                    <Text style={styles.comicBadge}>{comic.theme}</Text>
-                    <Text style={styles.comicTitleText}>{comic.title}</Text>
-                    <Text style={styles.comicPanelCount}>
-                      📖 {comic.panels.length} Percakapan Dialog
-                    </Text>
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          </ScrollView>
+          /* Comic Selection List via FlatList & Staggered 3D Cards */
+          <FlatList
+            data={INTERACTIVE_COMICS}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={5}
+            maxToRenderPerBatch={6}
+            ListHeaderComponent={
+              <StaggeredEntrance index={0}>
+                <View style={styles.bannerBox}>
+                  <Text style={styles.bannerEmoji}>🎙️💬✨</Text>
+                  <Text style={styles.bannerTitle}>20 Komik Percakapan Suara</Text>
+                  <Text style={styles.bannerSubtitle}>
+                    Format komik kartun asli! Baca balon percakapan di atas karakter dengan mikrofon. Jika benar, lawan bicara akan merespons dengan animasi dan suara!
+                  </Text>
+                </View>
+              </StaggeredEntrance>
+            }
+            renderItem={({ item, index }) => (
+              <ComicCard3D
+                comic={item}
+                index={index + 1}
+                onOpen={handleOpenComic}
+              />
+            )}
+          />
         ) : isCompleted ? (
           /* Completion Screen */
           <View style={styles.completeContainer}>

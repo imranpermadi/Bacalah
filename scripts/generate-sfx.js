@@ -57,6 +57,8 @@ writeWav('tap', tone(660, 0.08, { decay: 40 }));
 writeWav('pop', tone(380, 0.14, { sweepTo: 900, decay: 22 }));
 // boop: umpan balik salah yang lembut (bukan buzzer)
 writeWav('boop', tone(330, 0.22, { sweepTo: 260, decay: 10 }).map((s) => s * 0.5));
+// swoosh: desingan cepat meluncur
+writeWav('swoosh', tone(750, 0.18, { sweepTo: 180, decay: 15 }));
 // chime: tiga nada naik
 writeWav(
   'chime',
