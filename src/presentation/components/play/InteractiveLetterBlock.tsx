@@ -230,7 +230,7 @@ export const InteractiveLetterBlock: React.FC<InteractiveLetterBlockProps> = ({
       {showLottie && (
         <View pointerEvents="none" style={styles.lottieOverlay}>
           <LottieView
-            source={require('../../../assets/lottie/sparkle.json')}
+            source={require('../../../../assets/lottie/sparkle.json')}
             autoPlay
             loop={false}
             style={styles.lottieAnimation}
