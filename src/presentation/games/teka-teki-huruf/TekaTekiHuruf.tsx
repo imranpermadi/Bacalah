@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
-import { colors, fonts } from '../../../core/theme';
+import { colors, fonts, radius } from '../../../core/theme';
 import { WordItem } from '../../../domain/entities/DictationExercise';
 import { DictationGenerator } from '../../../domain/services/DictationGenerator';
 import { AlphabetMasteryEngine } from '../../../domain/services/AlphabetMasteryEngine';
 import { BubbleKeyboard } from '../../components/play/BubbleKeyboard';
-import { HearButtons } from '../../components/common/ui';
+import { ToyBlockAudioButtons } from '../../components/play/ToyBlockAudioButtons';
 import { useAppStore } from '../../stores/useAppStore';
 import { GameShell, useGameSession } from '../GameShell';
 import { pickWord } from '../useLetterRound';
-import { Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 /** 🧩 Isi huruf yang hilang pada kata bergambar. */
 export function TekaTekiHuruf({ onExit }: { onExit: () => void }) {
@@ -43,9 +46,13 @@ export function TekaTekiHuruf({ onExit }: { onExit: () => void }) {
     recordLetter(target, ok, l);
     if (ok) {
       setFilled(true);
+      container.sound.sfx('tada_magic');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       session.correct();
     } else {
       setWob((w) => ({ letter: l, token: w.token + 1 }));
+      container.sound.sfx('error_buzz');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       session.wrong();
     }
   };
@@ -53,29 +60,99 @@ export function TekaTekiHuruf({ onExit }: { onExit: () => void }) {
   return (
     <GameShell title="Teka-Teki Huruf" emoji="🧩" color={colors.peach} session={session} onExit={onExit}>
       <View style={styles.center}>
-        <Text style={styles.emoji}>{word.emoji}</Text>
-        <View style={styles.row}>
-          {word.word.split('').map((c, i) => (
-            <View key={i} style={[styles.box, i === hole && !filled && styles.hole]}>
-              <Text style={styles.ch}>{i === hole && !filled ? '?' : c}</Text>
+        <View style={styles.puzzleCard3D}>
+          <LinearGradient
+            colors={['#FFFFFF', '#FFFBF5']}
+            style={styles.cardGradient}
+          >
+            <Text style={styles.emoji}>{word.emoji}</Text>
+            <View style={styles.row}>
+              {word.word.split('').map((c, i) => (
+                <View key={i} style={[styles.box, i === hole && !filled && styles.hole, i === hole && filled && styles.holeFilled]}>
+                  <Text style={[styles.ch, i === hole && filled && { color: '#15803D' }]}>
+                    {i === hole && !filled ? '?' : c}
+                  </Text>
+                </View>
+              ))}
             </View>
-          ))}
+          </LinearGradient>
         </View>
       </View>
-      <View style={{ paddingBottom: 12, gap: 12 }}>
-        <BubbleKeyboard letters={options} onPress={press} highlightLetter={session.wrongThisRound >= 2 ? word.word[hole] : null} wobbleLetter={wob.letter} wobbleToken={wob.token} width={Dimensions.get('window').width} />
-        <HearButtons text={word.word.toLowerCase()} slowParts={word.syllables.map((s) => s.toLowerCase())} />
+
+      <View style={styles.bottomSection}>
+        <BubbleKeyboard
+          letters={options}
+          onPress={press}
+          wobbleLetter={wob.letter}
+          wobbleToken={wob.token}
+          disabled={filled}
+          width={width}
+        />
+        <ToyBlockAudioButtons
+          onHear={() => container.sound.hear(word.word.toLowerCase())}
+          onSlow={() => container.sound.hearSlow(word.syllables.map((s) => s.toLowerCase()))}
+        />
       </View>
     </GameShell>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
-  emoji: { fontSize: 100 },
-  row: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'center' },
-  box: { width: 46, height: 58, borderRadius: 14, backgroundColor: '#FFF', borderWidth: 3, borderColor: colors.line, borderBottomWidth: 5, alignItems: 'center', justifyContent: 'center' },
-  hole: { backgroundColor: '#FFF3B0', borderColor: colors.sunnyDark },
-  ch: { fontFamily: fonts.black, fontSize: 30, color: colors.ink },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  puzzleCard3D: {
+    width: '100%',
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#FED7AA',
+    borderBottomWidth: 6,
+    borderBottomColor: '#FDBA74',
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardGradient: {
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 16,
+  },
+  emoji: { fontSize: 80 },
+  row: { flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap' },
+  box: {
+    width: 56,
+    height: 64,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderBottomWidth: 4,
+    borderBottomColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hole: {
+    borderStyle: 'dashed',
+    borderWidth: 2.5,
+    borderColor: '#F59E0B',
+    backgroundColor: '#FEF3C7',
+  },
+  holeFilled: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#86EFAC',
+    borderBottomColor: '#22C55E',
+  },
+  ch: { fontFamily: fonts.black, fontSize: 34, color: colors.ink },
+  bottomSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 12,
+  },
 });
-

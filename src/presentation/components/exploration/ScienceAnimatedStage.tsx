@@ -6,7 +6,6 @@ import Animated, {
   withRepeat,
   withSequence,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
@@ -21,15 +20,13 @@ interface Props {
 
 /**
  * 🔬 ScienceAnimatedStage
- * Visualizer sains bergerak dengan animasi interaktif untuk anak:
- * - Antariksa: Bulan mengorbit Bumi dengan bintang berkelip.
- * - Hewan: Bunglon berganti warna, lebah mengepakkan sayap.
+ * Visualizer sains bergerak dengan animasi interaktif untuk anak dengan Golden Rules:
+ * - Antariksa: Bulan mengorbit Bumi dengan fisika spring.
+ * - Tubuh: Jantung berdetak nyata (lub-dub spring pulsation).
  * - Cuaca: Awan hujan dengan tetesan air & pelangi bersinar.
- * - Tubuh: Jantung berdetak nyata (lub-dub pulsation).
  * - Tumbuhan: Tunas tumbuh dan fotosintesis energi matahari.
  */
 export function ScienceAnimatedStage({ fact }: Props) {
-  // Shared values untuk berbagai animasi sains
   const orbitX = useSharedValue(0);
   const orbitY = useSharedValue(0);
   const pulseScale = useSharedValue(1);
@@ -37,36 +34,38 @@ export function ScienceAnimatedStage({ fact }: Props) {
   const rainDropY = useSharedValue(0);
   const leafSway = useSharedValue(0);
 
+  const stageScale = useSharedValue(1);
+
   useEffect(() => {
-    // 1. Animasi Orbit Antariksa
+    // 1. Animasi Orbit Antariksa dengan Spring Physics
     orbitX.value = withRepeat(
       withSequence(
-        withTiming(45, { duration: 1200 }),
-        withTiming(0, { duration: 1200 }),
-        withTiming(-45, { duration: 1200 }),
-        withTiming(0, { duration: 1200 })
+        withSpring(45, { damping: 10, stiffness: 60 }),
+        withSpring(0, { damping: 10, stiffness: 60 }),
+        withSpring(-45, { damping: 10, stiffness: 60 }),
+        withSpring(0, { damping: 10, stiffness: 60 })
       ),
       -1,
       true
     );
     orbitY.value = withRepeat(
       withSequence(
-        withTiming(-18, { duration: 1200 }),
-        withTiming(0, { duration: 1200 }),
-        withTiming(18, { duration: 1200 }),
-        withTiming(0, { duration: 1200 })
+        withSpring(-18, { damping: 10, stiffness: 60 }),
+        withSpring(0, { damping: 10, stiffness: 60 }),
+        withSpring(18, { damping: 10, stiffness: 60 }),
+        withSpring(0, { damping: 10, stiffness: 60 })
       ),
       -1,
       true
     );
 
-    // 2. Animasi Detak Jantung / Pulsa Tubuh (Lub-Dub rhythm)
+    // 2. Animasi Detak Jantung / Pulsa Tubuh (Lub-Dub rhythm dengan Spring)
     pulseScale.value = withRepeat(
       withSequence(
-        withTiming(1.22, { duration: 200 }),
-        withTiming(1.08, { duration: 150 }),
-        withTiming(1.3, { duration: 250 }),
-        withTiming(1.0, { duration: 550 })
+        withSpring(1.24, { damping: 5, stiffness: 220 }),
+        withSpring(1.06, { damping: 6, stiffness: 200 }),
+        withSpring(1.3, { damping: 4, stiffness: 240 }),
+        withSpring(1.0, { damping: 8, stiffness: 150 })
       ),
       -1,
       true
@@ -75,8 +74,8 @@ export function ScienceAnimatedStage({ fact }: Props) {
     // 3. Animasi Berputar / Rotasi
     rotateDeg.value = withRepeat(
       withSequence(
-        withTiming(15, { duration: 800 }),
-        withTiming(-15, { duration: 800 })
+        withSpring(15, { damping: 7, stiffness: 100 }),
+        withSpring(-15, { damping: 7, stiffness: 100 })
       ),
       -1,
       true
@@ -85,8 +84,8 @@ export function ScienceAnimatedStage({ fact }: Props) {
     // 4. Animasi Tetesan Air Hujan
     rainDropY.value = withRepeat(
       withSequence(
-        withTiming(26, { duration: 450 }),
-        withTiming(0, { duration: 50 })
+        withSpring(24, { damping: 5, stiffness: 180 }),
+        withSpring(0, { damping: 8, stiffness: 220 })
       ),
       -1,
       false
@@ -95,8 +94,8 @@ export function ScienceAnimatedStage({ fact }: Props) {
     // 5. Animasi Daun / Tumbuhan Bergoyang
     leafSway.value = withRepeat(
       withSequence(
-        withTiming(8, { duration: 700 }),
-        withTiming(-8, { duration: 700 })
+        withSpring(10, { damping: 6, stiffness: 90 }),
+        withSpring(-10, { damping: 6, stiffness: 90 })
       ),
       -1,
       true
@@ -126,9 +125,19 @@ export function ScienceAnimatedStage({ fact }: Props) {
     transform: [{ rotate: `${leafSway.value}deg` }],
   }));
 
+  const animatedStageStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: stageScale.value }],
+  }));
+
   const handleStageTap = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    container.sound.sfx('chime');
+    stageScale.value = withSequence(
+      withSpring(0.96, { damping: 12, stiffness: 350 }),
+      withSpring(1.0, { damping: 8, stiffness: 220 })
+    );
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      container.sound.sfx('chime');
+    } catch {}
   };
 
   const renderScienceScene = () => {
@@ -140,7 +149,6 @@ export function ScienceAnimatedStage({ fact }: Props) {
           <Text style={styles.starsBg}>✨ 🌟 ✨ 🌌 ✨</Text>
           <View style={styles.solarCenter}>
             <Text style={{ fontSize: 72 }}>🌍</Text>
-            {/* Bulan yang berputar mengelilingi Bumi */}
             <Animated.View style={[styles.orbitingMoon, animatedOrbitStyle]}>
               <Text style={{ fontSize: 38 }}>🌕</Text>
             </Animated.View>
@@ -222,12 +230,14 @@ export function ScienceAnimatedStage({ fact }: Props) {
   };
 
   return (
-    <Pressable onPress={handleStageTap} style={[styles.canvasFrame, { borderColor: fact.accentColor }]}>
-      {renderScienceScene()}
-      <View style={styles.tapPromptRow}>
-        <Text style={styles.tapPromptText}>👆 Ketuk panggung animasi untuk efek suara!</Text>
-      </View>
-    </Pressable>
+    <Animated.View style={animatedStageStyle}>
+      <Pressable onPress={handleStageTap} style={[styles.canvasFrame, { borderColor: fact.accentColor }]}>
+        {renderScienceScene()}
+        <View style={styles.tapPromptRow}>
+          <Text style={styles.tapPromptText}>👆 Ketuk panggung animasi untuk efek suara!</Text>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -239,12 +249,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     padding: 16,
     borderWidth: 3,
+    borderBottomWidth: 6,
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: '#000',
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   sceneContainer: {
     width: '100%',

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { container } from '../../../core/di/container';
-import { colors, fonts } from '../../../core/theme';
+import { colors, fonts, radius } from '../../../core/theme';
 import { letterInfo, LETTERS } from '../../../data/content/alphabet';
 import { OPEN_SYLLABLES, WORDS } from '../../../data/content/curriculum';
 import { VoiceResult } from '../../../core/sound/VoiceEvaluatorService';
@@ -75,11 +76,20 @@ export function TirukanCici({ onExit }: { onExit: () => void }) {
   return (
     <GameShell title="Tirukan Cici" emoji="🎤" color={colors.lavender} session={session} onExit={onExit}>
       <View style={styles.center}>
-        {item.emoji ? <Text style={styles.emoji}>{item.emoji}</Text> : null}
-        <Text style={styles.word}>{item.label}</Text>
-        <Text style={styles.sub}>Dengar Cici, lalu tirukan ya!</Text>
+        <View style={styles.wordCard3D}>
+          <LinearGradient
+            colors={['#FFFFFF', '#FAF5FF']}
+            style={styles.cardGradient}
+          >
+            {item.emoji ? <Text style={styles.emoji}>{item.emoji}</Text> : null}
+            <Text style={styles.word}>{item.label}</Text>
+            <View style={styles.hintBadge}>
+              <Text style={styles.sub}>Dengar Cici, lalu tirukan ya! 🎙️</Text>
+            </View>
+          </LinearGradient>
+        </View>
       </View>
-      <View style={{ paddingBottom: 24 }}>
+      <View style={{ paddingBottom: 28 }}>
         <VoiceMicButton target={item.target} speakText={item.speak} accepted={item.accepted} onResult={onResult} />
       </View>
     </GameShell>
@@ -87,9 +97,50 @@ export function TirukanCici({ onExit }: { onExit: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6 },
-  emoji: { fontSize: 90 },
-  word: { fontFamily: fonts.black, fontSize: 64, color: colors.ink },
-  sub: { fontFamily: fonts.heavy, fontSize: 16, color: colors.inkSoft },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  wordCard3D: {
+    width: '100%',
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#E9D5FF',
+    borderBottomWidth: 6,
+    borderBottomColor: '#C084FC',
+    shadowColor: '#A855F7',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  cardGradient: {
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emoji: { fontSize: 84 },
+  word: {
+    fontFamily: fonts.black,
+    fontSize: 58,
+    color: colors.ink,
+    letterSpacing: 2,
+    textAlign: 'center',
+  },
+  hintBadge: {
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    marginTop: 6,
+  },
+  sub: {
+    fontFamily: fonts.heavy,
+    fontSize: 14,
+    color: '#7E22CE',
+  },
 });
-

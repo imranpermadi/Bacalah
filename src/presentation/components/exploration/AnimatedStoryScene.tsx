@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { container } from '../../../core/di/container';
 import { colors, fonts, radius } from '../../../core/theme';
 
 const { width } = Dimensions.get('window');
@@ -24,7 +25,7 @@ interface Props {
 /**
  * 🎬 AnimatedStoryScene
  * Menampilkan adegan kartun beranimasi hidup yang bergerak sesuai alur cerita anak:
- * - Karakter utama melompat/berjalan/bernapas secara dinamis.
+ * - Karakter utama melompat/berjalan/bernapas dengan Supercell/Duolingo Spring Physics.
  * - Objek cerita (roti, madu, sungai, bunga) bergerak bersama karakter.
  * - Elemen alam sekitar (awan melayang, rumput bergoyang, sinar matahari berkilau).
  */
@@ -49,12 +50,15 @@ export function AnimatedStoryScene({
   const cloudX = useSharedValue(0);
   const sparkleScale = useSharedValue(0.9);
 
+  // Tap bounce effect
+  const tapScale = useSharedValue(1);
+
   useEffect(() => {
-    // 1. Karakter bergerak aktif (bouncing / breathing animation)
+    // 1. Karakter bergerak aktif (spring bouncing / breathing animation)
     characterY.value = withRepeat(
       withSequence(
-        withTiming(-12, { duration: 650 }),
-        withTiming(0, { duration: 650 })
+        withSpring(-14, { damping: 4, stiffness: 120 }),
+        withSpring(0, { damping: 5, stiffness: 120 })
       ),
       -1,
       true
@@ -62,8 +66,8 @@ export function AnimatedStoryScene({
 
     characterScale.value = withRepeat(
       withSequence(
-        withTiming(1.06, { duration: 650 }),
-        withTiming(0.98, { duration: 650 })
+        withSpring(1.08, { damping: 6, stiffness: 140 }),
+        withSpring(0.96, { damping: 6, stiffness: 140 })
       ),
       -1,
       true
@@ -71,18 +75,18 @@ export function AnimatedStoryScene({
 
     characterRotate.value = withRepeat(
       withSequence(
-        withTiming(-4, { duration: 750 }),
-        withTiming(4, { duration: 750 })
+        withSpring(-5, { damping: 8, stiffness: 90 }),
+        withSpring(5, { damping: 8, stiffness: 90 })
       ),
       -1,
       true
     );
 
-    // 2. Objek yang dibawa / item cerita bergerak
+    // 2. Objek cerita bergerak
     itemFloatX.value = withRepeat(
       withSequence(
-        withTiming(10, { duration: 900 }),
-        withTiming(-10, { duration: 900 })
+        withSpring(12, { damping: 7, stiffness: 100 }),
+        withSpring(-12, { damping: 7, stiffness: 100 })
       ),
       -1,
       true
@@ -90,8 +94,8 @@ export function AnimatedStoryScene({
 
     itemFloatY.value = withRepeat(
       withSequence(
-        withTiming(-8, { duration: 550 }),
-        withTiming(0, { duration: 550 })
+        withSpring(-10, { damping: 5, stiffness: 130 }),
+        withSpring(0, { damping: 5, stiffness: 130 })
       ),
       -1,
       true
@@ -100,8 +104,8 @@ export function AnimatedStoryScene({
     // 3. Awan dan sinar bergerak perlahan di latar
     cloudX.value = withRepeat(
       withSequence(
-        withTiming(20, { duration: 2500 }),
-        withTiming(-20, { duration: 2500 })
+        withSpring(24, { damping: 10, stiffness: 40 }),
+        withSpring(-24, { damping: 10, stiffness: 40 })
       ),
       -1,
       true
@@ -109,8 +113,8 @@ export function AnimatedStoryScene({
 
     sparkleScale.value = withRepeat(
       withSequence(
-        withTiming(1.25, { duration: 800 }),
-        withTiming(0.85, { duration: 800 })
+        withSpring(1.3, { damping: 6, stiffness: 160 }),
+        withSpring(0.85, { damping: 6, stiffness: 160 })
       ),
       -1,
       true
@@ -140,60 +144,72 @@ export function AnimatedStoryScene({
     transform: [{ scale: sparkleScale.value }],
   }));
 
-  // Deteksi khusus jika cerita tentang semut (Soni si Semut Hitam)
+  const animatedStageStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: tapScale.value }],
+  }));
+
+  const handleStagePress = () => {
+    tapScale.value = withSequence(
+      withSpring(0.96, { damping: 10, stiffness: 400 }),
+      withSpring(1.0, { damping: 8, stiffness: 220 })
+    );
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      container.sound.sfx('pop');
+    } catch {}
+  };
+
   const isAntStory = storyId.includes('semut') || coverEmoji === '🐜';
   const mainHero = isAntStory ? '🐜' : coverEmoji;
   const companionOrProp = illustrationEmoji;
 
   return (
-    <View style={[styles.canvas, { borderColor: themeColor }]}>
-      {/* Background Nature Backdrop */}
-      <View style={styles.skyLayer}>
-        <Animated.View style={[styles.cloudBox, animatedCloudStyle]}>
-          <Text style={{ fontSize: 28 }}>☁️</Text>
-        </Animated.View>
-        <Animated.View style={[styles.sunBox, animatedSparkleStyle]}>
-          <Text style={{ fontSize: 32 }}>☀️</Text>
-        </Animated.View>
-        <Animated.View style={[styles.sparkleBox, animatedSparkleStyle]}>
-          <Text style={{ fontSize: 20 }}>✨</Text>
-        </Animated.View>
-      </View>
+    <Animated.View style={animatedStageStyle}>
+      <Pressable onPress={handleStagePress} style={[styles.canvas, { borderColor: themeColor }]}>
+        {/* Background Nature Backdrop */}
+        <View style={styles.skyLayer}>
+          <Animated.View style={[styles.cloudBox, animatedCloudStyle]}>
+            <Text style={{ fontSize: 28 }}>☁️</Text>
+          </Animated.View>
+          <Animated.View style={[styles.sunBox, animatedSparkleStyle]}>
+            <Text style={{ fontSize: 32 }}>☀️</Text>
+          </Animated.View>
+          <Animated.View style={[styles.sparkleBox, animatedSparkleStyle]}>
+            <Text style={{ fontSize: 20 }}>✨</Text>
+          </Animated.View>
+        </View>
 
-      {/* Main Animated Cartoon Action Stage */}
-      <View style={styles.stage}>
-        {isAntStory ? (
-          /* Semut membawa remah roti di kepalanya */
-          <View style={styles.antCarryingBreadStage}>
-            {/* Roti di atas semut */}
-            <Animated.View style={[styles.heldItem, animatedItemStyle]}>
-              <Text style={{ fontSize: 54 }}>{companionOrProp || '🍞'}</Text>
-            </Animated.View>
-            {/* Semut berjalan dengan kakinya */}
-            <Animated.View style={[styles.heroAnt, animatedCharacterStyle]}>
-              <Text style={{ fontSize: 68 }}>🐜</Text>
-            </Animated.View>
-          </View>
-        ) : (
-          /* Karakter umum berinteraksi dengan objek cerita */
-          <View style={styles.generalDuoStage}>
-            <Animated.View style={[styles.heroBox, animatedCharacterStyle]}>
-              <Text style={{ fontSize: 72 }}>{mainHero}</Text>
-            </Animated.View>
-            {companionOrProp && companionOrProp !== mainHero && (
-              <Animated.View style={[styles.propBox, animatedItemStyle]}>
-                <Text style={{ fontSize: 52 }}>{companionOrProp}</Text>
+        {/* Main Animated Cartoon Action Stage */}
+        <View style={styles.stage}>
+          {isAntStory ? (
+            <View style={styles.antCarryingBreadStage}>
+              <Animated.View style={[styles.heldItem, animatedItemStyle]}>
+                <Text style={{ fontSize: 54 }}>{companionOrProp || '🍞'}</Text>
               </Animated.View>
-            )}
-          </View>
-        )}
-      </View>
+              <Animated.View style={[styles.heroAnt, animatedCharacterStyle]}>
+                <Text style={{ fontSize: 68 }}>🐜</Text>
+              </Animated.View>
+            </View>
+          ) : (
+            <View style={styles.generalDuoStage}>
+              <Animated.View style={[styles.heroBox, animatedCharacterStyle]}>
+                <Text style={{ fontSize: 72 }}>{mainHero}</Text>
+              </Animated.View>
+              {companionOrProp && companionOrProp !== mainHero && (
+                <Animated.View style={[styles.propBox, animatedItemStyle]}>
+                  <Text style={{ fontSize: 52 }}>{companionOrProp}</Text>
+                </Animated.View>
+              )}
+            </View>
+          )}
+        </View>
 
-      {/* Ground Grass / Trail Layer */}
-      <View style={styles.groundLayer}>
-        <Text style={styles.groundDetails}>🌿 🌱 🌸 🌾 🌱 🌿</Text>
-      </View>
-    </View>
+        {/* Ground Grass / Trail Layer */}
+        <View style={styles.groundLayer}>
+          <Text style={styles.groundDetails}>🌿 🌱 🌸 🌾 🌱 🌿</Text>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -204,12 +220,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     overflow: 'hidden',
     borderWidth: 3,
+    borderBottomWidth: 6,
     justifyContent: 'space-between',
     position: 'relative',
     shadowColor: '#000',
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 6,
-    elevation: 3,
+    elevation: 4,
   },
   skyLayer: {
     flexDirection: 'row',
@@ -273,4 +290,3 @@ const styles = StyleSheet.create({
     letterSpacing: 6,
   },
 });
-

@@ -2,10 +2,19 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { container } from '../../core/di/container';
 import { colors, fonts, radius } from '../../core/theme';
 import { encouragement, randomHint, randomPraise } from '../../data/content/feedback';
 import { Celebration } from '../components/common/Celebration';
+import { BintangKemenangan } from '../components/common/BintangKemenangan';
+import { StaggeredEntrance } from '../components/motion/StaggeredEntrance';
 import { BigButton, Stars } from '../components/common/ui';
 import { MascotCici, Mood } from '../components/play/MascotCici';
 import { useAppStore } from '../stores/useAppStore';
@@ -60,7 +69,10 @@ export function useGameSession(gameIdOrTotal: string | number = 'game', totalPar
       const first = wrongThisRound === 0;
       const newScore = score + (first ? 1 : 0);
       setScore(newScore);
-      container.sound.sfx('pop');
+      try {
+        container.sound.sfx('tada_magic');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
       say(randomPraise(), 'happy');
       const next = round + 1;
 
@@ -83,7 +95,10 @@ export function useGameSession(gameIdOrTotal: string | number = 'game', totalPar
 
   const wrong = useCallback(() => {
     setWrongThisRound((w) => w + 1);
-    container.sound.sfx('boop');
+    try {
+      container.sound.sfx('error_buzz');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } catch {}
     say(randomHint(), 'hint');
   }, []);
 
@@ -126,6 +141,45 @@ export function useGameSession(gameIdOrTotal: string | number = 'game', totalPar
 
 type Session = ReturnType<typeof useGameSession>;
 
+function TactileHeaderButton({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={animStyle}>
+      <Pressable
+        onPressIn={() => {
+          scale.value = withSpring(0.92, { damping: 14, stiffness: 350 });
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1.0, { damping: 10, stiffness: 200 });
+        }}
+        onPress={() => {
+          container.sound.sfx('pop');
+          onPress();
+        }}
+        style={styles.headerBtnWrapper}
+      >
+        <LinearGradient
+          colors={['#FFFFFF', '#F8FAFC']}
+          style={styles.headerBtnGradient}
+        >
+          <Text style={styles.headerBtnText}>{label}</Text>
+        </LinearGradient>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export function GameShell({
   title,
   emoji,
@@ -154,14 +208,11 @@ export function GameShell({
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top']}>
+      {/* 3D Header Bar */}
       <View style={[styles.header, { backgroundColor: color }]}>
         <View style={styles.headerLeft}>
-          <Pressable onPress={handleBackToHome} style={styles.homeBtn}>
-            <Text style={styles.homeBtnText}>🏠 Beranda</Text>
-          </Pressable>
-          <Pressable onPress={onExit} style={styles.exitBtn}>
-            <Text style={styles.exitBtnText}>🎮 Games</Text>
-          </Pressable>
+          <TactileHeaderButton label="🏠 Beranda" onPress={handleBackToHome} />
+          <TactileHeaderButton label="🎮 Games" onPress={onExit} />
         </View>
 
         <View style={styles.headerCenter}>
@@ -174,42 +225,66 @@ export function GameShell({
         </View>
 
         <View style={styles.headerRight}>
-          <Text style={styles.counter}>
-            {Math.min(session.round + 1, session.total)}/{session.total}
-          </Text>
+          <View style={styles.counterBadge}>
+            <Text style={styles.counter}>
+              {Math.min(session.round + 1, session.total)}/{session.total}
+            </Text>
+          </View>
         </View>
       </View>
 
       {session.finished ? (
         <View style={styles.finish}>
-          <Text style={styles.finishTitle}>Selesai! 🎉</Text>
-          <Stars count={session.stars} size={56} />
-          <Text style={styles.finishText}>
-            Benar langsung: {session.score} dari {session.total}
-          </Text>
-          <Text style={styles.finishText}>
-            {session.stars === 3
-              ? encouragement.high
-              : session.stars === 2
-              ? encouragement.mid
-              : encouragement.low}
-          </Text>
-          <Text style={styles.finishText}>🐱 +{session.stars} bintang untukmu!</Text>
-          <View style={{ gap: 12, marginTop: 20, alignSelf: 'stretch', paddingHorizontal: 32 }}>
-            <BigButton
-              label="🔁 Main Lagi (30 Soal Baru)"
-              color={colors.mint}
-              edge={colors.mintDark}
-              onPress={session.restart}
-            />
-            <BigButton
-              label="🏠 Kembali ke Beranda"
-              color={colors.sky}
-              edge={colors.skyDark}
-              onPress={handleBackToHome}
-            />
-            <BigButton label="🎮 Pilih Game Lain" small onPress={onExit} />
-          </View>
+          {/* Victory Star Pop Out */}
+          <BintangKemenangan size={80} label={`+${session.stars} ⭐ BINTANG!`} />
+
+          {/* 1. Header Trophy & Stars */}
+          <StaggeredEntrance index={0}>
+            <View style={styles.finishCard3D}>
+              <LinearGradient
+                colors={['#FFFFFF', '#FFFDF5']}
+                style={styles.finishCardGradient}
+              >
+                <Text style={styles.finishTitle}>Selesai! 🎉</Text>
+                <Stars count={session.stars} size={52} />
+                <Text style={styles.finishScore}>
+                  Benar langsung: {session.score} dari {session.total}
+                </Text>
+                <Text style={styles.finishPraise}>
+                  {session.stars === 3
+                    ? encouragement.high
+                    : session.stars === 2
+                    ? encouragement.mid
+                    : encouragement.low}
+                </Text>
+                <View style={styles.starsRewardBadge}>
+                  <Text style={styles.starsRewardText}>
+                    🐱 +{session.stars} bintang telah ditambahkan ke rapormu!
+                  </Text>
+                </View>
+              </LinearGradient>
+            </View>
+          </StaggeredEntrance>
+
+          {/* 2. Action Buttons */}
+          <StaggeredEntrance index={1}>
+            <View style={styles.finishActions}>
+              <BigButton
+                label="🔁 Main Lagi (30 Soal Baru)"
+                color={colors.mint}
+                edge={colors.mintDark}
+                onPress={session.restart}
+              />
+              <BigButton
+                label="🏠 Kembali ke Beranda"
+                color={colors.sky}
+                edge={colors.skyDark}
+                onPress={handleBackToHome}
+              />
+              <BigButton label="🎮 Pilih Game Lain" small onPress={onExit} />
+            </View>
+          </StaggeredEntrance>
+
           <Celebration visible />
         </View>
       ) : (
@@ -230,8 +305,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 10,
+    borderBottomWidth: 3,
+    borderBottomColor: 'rgba(0, 0, 0, 0.08)',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -241,39 +318,37 @@ const styles = StyleSheet.create({
   headerCenter: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
   },
   headerRight: {
-    minWidth: 46,
+    minWidth: 50,
     alignItems: 'flex-end',
   },
-  homeBtn: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+  headerBtnWrapper: {
     borderRadius: radius.md,
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
+    borderBottomWidth: 3,
+    borderBottomColor: '#CBD5E1',
+    overflow: 'hidden',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  homeBtnText: {
+  headerBtnGradient: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  headerBtnText: {
     fontFamily: fonts.black,
     fontSize: 12,
     color: colors.ink,
   },
-  exitBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: radius.md,
-  },
-  exitBtnText: {
-    fontFamily: fonts.heavy,
-    fontSize: 12,
-    color: colors.inkSoft,
-  },
   title: {
     fontFamily: fonts.black,
-    fontSize: 17,
+    fontSize: 16,
     color: colors.ink,
     textAlign: 'center',
   },
@@ -282,15 +357,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.inkSoft,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: radius.pill,
     overflow: 'hidden',
     marginTop: 2,
   },
+  counterBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
   counter: {
     fontFamily: fonts.black,
-    fontSize: 15,
+    fontSize: 13,
     color: colors.ink,
     textAlign: 'right',
   },
@@ -299,13 +382,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
-    gap: 8,
+    gap: 16,
   },
-  finishTitle: { fontFamily: fonts.black, fontSize: 36, color: colors.ink },
-  finishText: {
-    fontFamily: fonts.heavy,
-    fontSize: 16,
+  finishCard3D: {
+    width: '100%',
+    borderRadius: radius.xl,
+    borderWidth: 2,
+    borderColor: '#FED7AA',
+    borderBottomWidth: 6,
+    borderBottomColor: '#FDBA74',
+    overflow: 'hidden',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  finishCardGradient: {
+    padding: 24,
+    alignItems: 'center',
+    gap: 10,
+  },
+  finishTitle: {
+    fontFamily: fonts.black,
+    fontSize: 34,
     color: colors.ink,
+  },
+  finishScore: {
+    fontFamily: fonts.black,
+    fontSize: 18,
+    color: colors.ink,
+    marginTop: 4,
+  },
+  finishPraise: {
+    fontFamily: fonts.heavy,
+    fontSize: 15,
+    color: colors.inkSoft,
     textAlign: 'center',
+    lineHeight: 20,
+  },
+  starsRewardBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    marginTop: 4,
+  },
+  starsRewardText: {
+    fontFamily: fonts.black,
+    fontSize: 13,
+    color: '#D97706',
+    textAlign: 'center',
+  },
+  finishActions: {
+    width: '100%',
+    gap: 12,
+    paddingHorizontal: 16,
   },
 });

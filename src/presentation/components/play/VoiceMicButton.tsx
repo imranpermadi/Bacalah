@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
-import { colors, fonts } from '../../../core/theme';
+import { colors, fonts, radius } from '../../../core/theme';
 import { VoiceResult } from '../../../core/sound/VoiceEvaluatorService';
 import { BigButton, Stars } from '../common/ui';
 import { useAppStore } from '../../stores/useAppStore';
@@ -20,8 +27,14 @@ interface Props {
   onResult?: (r: VoiceResult) => void;
 }
 
-/** Tombol mikrofon: anak menirukan Cici, dinilai 1–3 bintang. */
-export function VoiceMicButton({ target, speakText, accepted, showHearButton = false, onResult }: Props) {
+/** Tombol mikrofon: anak menirukan Cici, dinilai 1–3 bintang dengan Golden Rules. */
+export function VoiceMicButton({
+  target,
+  speakText,
+  accepted,
+  showHearButton = false,
+  onResult,
+}: Props) {
   const saveVoice = useAppStore((s) => s.saveVoice);
   const [listening, setListening] = useState(false);
   const [result, setResult] = useState<VoiceResult | null>(null);
@@ -30,28 +43,46 @@ export function VoiceMicButton({ target, speakText, accepted, showHearButton = f
 
   useEffect(() => {
     pulse.value = listening
-      ? withRepeat(withSequence(withTiming(1.15, { duration: 400 }), withTiming(1, { duration: 400 })), -1)
-      : withTiming(1);
+      ? withRepeat(
+          withSequence(
+            withSpring(1.15, { damping: 8, stiffness: 250 }),
+            withSpring(1.0, { damping: 8, stiffness: 250 })
+          ),
+          -1
+        )
+      : withSpring(1.0, { damping: 10, stiffness: 200 });
   }, [listening, pulse]);
-  const anim = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+
+  const anim = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
+  }));
 
   useEffect(() => {
     setResult(null);
     setNote('');
   }, [target]);
 
-  const msgFor = (stars: number) => (stars === 3 ? encouragement.high : stars === 2 ? encouragement.mid : encouragement.low);
+  const msgFor = (stars: number) =>
+    stars === 3 ? encouragement.high : stars === 2 ? encouragement.mid : encouragement.low;
 
   const start = async () => {
     setResult(null);
     try {
       setListening(true);
       setNote('Cici mendengarkan… ayo bicara! 👂');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const r = await container.voice.listenAndScore(target, accepted ?? [target]);
       setResult(r);
       setNote(msgFor(r.stars));
       saveVoice(target, r.transcript || target, r.similarity, r.stars);
-      container.sound.sfx(r.stars >= 2 ? 'chime' : 'pop');
+
+      if (r.stars >= 2) {
+        container.sound.sfx('tada_magic');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        container.sound.sfx('pop');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
       onResult?.(r);
     } catch (e: any) {
       setNote(
@@ -62,15 +93,6 @@ export function VoiceMicButton({ target, speakText, accepted, showHearButton = f
     } finally {
       setListening(false);
     }
-  };
-
-  const practiceDone = () => {
-    const r: VoiceResult = { transcript: target, similarity: 0.9, stars: 3 };
-    setResult(r);
-    setNote('Hebat sudah berlatih! Suaramu merdu sekali! 🌟');
-    saveVoice(target, target, 0.9, 3);
-    container.sound.sfx('chime');
-    onResult?.(r);
   };
 
   return (
@@ -95,19 +117,31 @@ export function VoiceMicButton({ target, speakText, accepted, showHearButton = f
           />
         </Animated.View>
       </View>
+
       {note ? <Text style={styles.note}>{note}</Text> : null}
+
       {result && result.transcript ? (
-        <Text style={styles.heard}>Cici dengar: “{result.transcript}”</Text>
+        <View style={styles.heardBadge}>
+          <Text style={styles.heard}>Cici dengar: “{result.transcript}”</Text>
+        </View>
       ) : null}
-      {result ? <Stars count={result.stars} /> : null}
+
+      {result ? <Stars count={result.stars} size={42} /> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', gap: 8, paddingHorizontal: 16 },
+  wrap: { alignItems: 'center', gap: 10, paddingHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'center' },
   note: { fontFamily: fonts.heavy, fontSize: 15, color: colors.ink, textAlign: 'center' },
-  heard: { fontFamily: fonts.regular, fontSize: 14, color: colors.inkSoft },
+  heardBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  heard: { fontFamily: fonts.bold, fontSize: 14, color: colors.inkSoft },
 });
-

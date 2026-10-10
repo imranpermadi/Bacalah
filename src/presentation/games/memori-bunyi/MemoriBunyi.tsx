@@ -6,10 +6,11 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
-import { colors, fonts, radius, raised } from '../../../core/theme';
+import { colors, fonts, radius } from '../../../core/theme';
 import { OPEN_SYLLABLES, WORDS } from '../../../data/content/curriculum';
-import { BigButton } from '../../components/common/ui';
 import { GameShell, useGameSession } from '../GameShell';
 
 interface MemoryCardItem {
@@ -34,18 +35,22 @@ function FlipCard({
   onPress: () => void;
 }) {
   const rotateVal = useSharedValue(item.isFlipped || item.isMatched ? 1 : 0);
+  const scale = useSharedValue(1);
 
   useEffect(() => {
     rotateVal.value = withSpring(item.isFlipped || item.isMatched ? 1 : 0, {
-      damping: 15,
-      stiffness: 120,
+      damping: 14,
+      stiffness: 160,
     });
   }, [item.isFlipped, item.isMatched, rotateVal]);
 
   const frontAnimatedStyle = useAnimatedStyle(() => {
     const rotate = interpolate(rotateVal.value, [0, 1], [0, 180]);
     return {
-      transform: [{ rotateY: `${rotate}deg` }],
+      transform: [
+        { scale: scale.value },
+        { rotateY: `${rotate}deg` },
+      ],
       backfaceVisibility: 'hidden',
     };
   });
@@ -53,13 +58,25 @@ function FlipCard({
   const backAnimatedStyle = useAnimatedStyle(() => {
     const rotate = interpolate(rotateVal.value, [0, 1], [180, 360]);
     return {
-      transform: [{ rotateY: `${rotate}deg` }],
+      transform: [
+        { scale: scale.value },
+        { rotateY: `${rotate}deg` },
+      ],
       backfaceVisibility: 'hidden',
     };
   });
 
   return (
     <Pressable
+      onPressIn={() => {
+        if (!item.isFlipped && !item.isMatched) {
+          scale.value = withSpring(0.92, { damping: 14, stiffness: 350 });
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1.0, { damping: 10, stiffness: 200 });
+      }}
       onPress={onPress}
       disabled={item.isFlipped || item.isMatched}
       style={styles.cardContainer}
@@ -69,7 +86,6 @@ function FlipCard({
         style={[
           styles.cardFace,
           styles.cardHidden,
-          raised(colors.sunnyDark),
           frontAnimatedStyle,
         ]}
       >
@@ -82,7 +98,6 @@ function FlipCard({
         style={[
           styles.cardFace,
           item.isMatched ? styles.cardMatched : styles.cardRevealed,
-          raised(item.isMatched ? colors.mintDark : colors.skyDark),
           backAnimatedStyle,
         ]}
       >
@@ -101,7 +116,6 @@ export function MemoriBunyi({ onExit }: { onExit: () => void }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
-  // Buat 3 pasang kartu (total 6 kartu) untuk ronde aktif
   useEffect(() => {
     if (session.finished) return;
 
@@ -116,7 +130,6 @@ export function MemoriBunyi({ onExit }: { onExit: () => void }) {
     const generated: MemoryCardItem[] = [];
 
     chosenSyllables.forEach((syl, idx) => {
-      // Pasangan A: Kartu Suara
       generated.push({
         id: `sound-${idx}-${syl}`,
         pairId: `pair-${idx}`,
@@ -127,7 +140,6 @@ export function MemoriBunyi({ onExit }: { onExit: () => void }) {
         isMatched: false,
       });
 
-      // Pasangan B: Kartu Visual
       const matchingWord = WORDS.find((w) => w.word.startsWith(syl)) || { emoji: '✨' };
       generated.push({
         id: `visual-${idx}-${syl}`,
@@ -140,7 +152,6 @@ export function MemoriBunyi({ onExit }: { onExit: () => void }) {
       });
     });
 
-    // Acak posisi ke-6 kartu
     const shuffled = [...generated].sort(() => Math.random() - 0.5);
     setCards(shuffled);
     setSelectedIds([]);
@@ -159,7 +170,6 @@ export function MemoriBunyi({ onExit }: { onExit: () => void }) {
     const newSelected = [...selectedIds, id];
     setSelectedIds(newSelected);
 
-    // Buka kartu
     setCards((prev) =>
       prev.map((c) => (c.id === id ? { ...c, isFlipped: true } : c))
     );
@@ -171,7 +181,9 @@ export function MemoriBunyi({ onExit }: { onExit: () => void }) {
 
       if (first.pairId === second.pairId) {
         // Cocok!
-        container.sound.sfx('chime');
+        container.sound.sfx('tada_magic');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
         setTimeout(() => {
           setCards((prev) =>
             prev.map((c) =>
@@ -181,7 +193,6 @@ export function MemoriBunyi({ onExit }: { onExit: () => void }) {
           setSelectedIds([]);
           setIsEvaluating(false);
 
-          // Cek jika seluruh 3 pasang sudah matched
           const remainingUnmatched = cards.filter(
             (c) => c.pairId !== first.pairId && !c.isMatched
           ).length;
@@ -191,9 +202,11 @@ export function MemoriBunyi({ onExit }: { onExit: () => void }) {
           }
         }, 500);
       } else {
-        // Keliru: tutup kembali setelah jeda
-        container.sound.sfx('boop');
+        // Keliru
+        container.sound.sfx('error_buzz');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         session.wrong();
+
         setTimeout(() => {
           setCards((prev) =>
             prev.map((c) =>
@@ -202,7 +215,7 @@ export function MemoriBunyi({ onExit }: { onExit: () => void }) {
           );
           setSelectedIds([]);
           setIsEvaluating(false);
-        }, 1000);
+        }, 900);
       }
     }
   };
@@ -216,10 +229,15 @@ export function MemoriBunyi({ onExit }: { onExit: () => void }) {
       onExit={onExit}
     >
       <View style={styles.container}>
-        <View style={styles.guideCard}>
-          <Text style={styles.guideText}>
-            Dengarkan bunyi kartu dan temukan pasangan suku kata yang sama! 🎧✨
-          </Text>
+        <View style={styles.guideCard3D}>
+          <LinearGradient
+            colors={['#FFFFFF', '#FAF5FF']}
+            style={styles.guideGradient}
+          >
+            <Text style={styles.guideText}>
+              Dengarkan bunyi kartu dan temukan pasangan suku kata yang sama! 🎧✨
+            </Text>
+          </LinearGradient>
         </View>
 
         {/* 6 Cards Grid (2 rows x 3 columns) */}
@@ -239,20 +257,29 @@ export function MemoriBunyi({ onExit }: { onExit: () => void }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, alignItems: 'center' },
-  guideCard: {
-    backgroundColor: '#FFFFFF',
+  guideCard3D: {
     borderRadius: radius.md,
-    padding: 12,
+    overflow: 'hidden',
     marginBottom: 16,
     width: '100%',
+    borderWidth: 1.5,
+    borderColor: '#E9D5FF',
+    borderBottomWidth: 4,
+    borderBottomColor: '#C084FC',
+    shadowColor: '#A855F7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  guideGradient: {
+    padding: 12,
     alignItems: 'center',
-    borderBottomWidth: 3,
-    borderBottomColor: colors.line,
   },
   guideText: {
     fontFamily: fonts.heavy,
     fontSize: 13,
-    color: colors.ink,
+    color: '#6B21A8',
     textAlign: 'center',
   },
   grid: {
@@ -278,11 +305,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 6,
     gap: 4,
+    borderWidth: 1.5,
+    borderBottomWidth: 5,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   cardHidden: {
     backgroundColor: colors.sunny,
-    borderWidth: 2,
-    borderColor: colors.sunnyDark,
+    borderColor: '#FEF08A',
+    borderBottomColor: colors.sunnyDark,
   },
   cardHiddenEmoji: { fontSize: 32 },
   cardHiddenLabel: {
@@ -292,13 +326,13 @@ const styles = StyleSheet.create({
   },
   cardRevealed: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: colors.skyDark,
+    borderColor: '#BAE6FD',
+    borderBottomColor: colors.skyDark,
   },
   cardMatched: {
-    backgroundColor: '#E8F8F0',
-    borderWidth: 2,
-    borderColor: colors.mintDark,
+    backgroundColor: '#DCFCE7',
+    borderColor: '#86EFAC',
+    borderBottomColor: colors.mintDark,
   },
   cardRevealedEmoji: { fontSize: 32 },
   cardRevealedText: {
@@ -312,4 +346,3 @@ const styles = StyleSheet.create({
     color: colors.skyDark,
   },
 });
-

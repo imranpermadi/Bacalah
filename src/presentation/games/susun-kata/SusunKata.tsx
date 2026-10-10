@@ -3,26 +3,79 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSequence,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
-import { bubblePalette, colors, fonts, radius, raised } from '../../../core/theme';
+import { bubblePalette, colors, fonts, radius } from '../../../core/theme';
 import { WORDS } from '../../../data/content/curriculum';
 import { WordItem } from '../../../domain/entities/DictationExercise';
-import { Float, Wobble } from '../../components/common/Motion';
+import { Wobble } from '../../components/common/Motion';
 import { BigButton } from '../../components/common/ui';
 import { GameShell, useGameSession } from '../GameShell';
 
+/** Balok Huruf Taktil dengan Spring Physics Golden Rules */
+function TactileLetterTile({
+  item,
+  bg,
+  edge,
+  onPress,
+}: {
+  item: { id: string; letter: string; used: boolean };
+  bg: string;
+  edge: string;
+  onPress: () => void;
+}) {
+  const scale = useSharedValue(1);
+  const pressY = useSharedValue(0);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: scale.value },
+      { translateY: pressY.value },
+    ],
+  }));
+
+  return (
+    <Animated.View style={animStyle}>
+      <Pressable
+        disabled={item.used}
+        onPressIn={() => {
+          scale.value = withSpring(0.92, { damping: 14, stiffness: 350 });
+          pressY.value = withSpring(3, { damping: 14, stiffness: 350 });
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1.0, { damping: 10, stiffness: 200 });
+          pressY.value = withSpring(0, { damping: 10, stiffness: 200 });
+        }}
+        onPress={onPress}
+        style={[
+          styles.tile,
+          {
+            backgroundColor: item.used ? '#E2E8F0' : bg,
+            borderBottomColor: item.used ? '#CBD5E1' : edge,
+            borderBottomWidth: item.used ? 2 : 5,
+          },
+          item.used && styles.tileUsed,
+        ]}
+      >
+        <Text style={[styles.tileLetter, item.used && { color: '#94A3B8' }]}>
+          {item.letter}
+        </Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 /**
  * 🔤 Susun Kata Acak (Anagram Kata)
- * Tingkat Kesulitan Tinggi: Huruf-huruf diacak dan anak harus menyusunnya ke slot dalam urutan yang tepat.
+ * Golden Rules: Spring physics, multisensory tactile reactions, 3D cards, and depth gradients.
  */
 export function SusunKata({ onExit }: { onExit: () => void }) {
   const session = useGameSession('susun-kata', 30);
 
-  // Ambil kata sesuai round
   const [currentWord, setCurrentWord] = useState<WordItem>(WORDS[0]);
   const [scrambled, setScrambled] = useState<{ id: string; letter: string; used: boolean }[]>([]);
   const [placed, setPlaced] = useState<{ id: string; letter: string }[]>([]);
@@ -40,7 +93,7 @@ export function SusunKata({ onExit }: { onExit: () => void }) {
       letter: l,
       used: false,
     }));
-    // Pastikan teracak dan tidak sama persis dengan aslinya
+
     let shuffled = [...letters].sort(() => Math.random() - 0.5);
     if (shuffled.map((s) => s.letter).join('') === word.word) {
       shuffled = shuffled.reverse();
@@ -58,7 +111,6 @@ export function SusunKata({ onExit }: { onExit: () => void }) {
     if (item.used) return;
     container.sound.sfx('tap');
 
-    // Tandai tile sebagai used dan masukkan ke placed
     const nextPlaced = [...placed, { id: item.id, letter: item.letter }];
     setPlaced(nextPlaced);
     setScrambled((prev) =>
@@ -69,13 +121,15 @@ export function SusunKata({ onExit }: { onExit: () => void }) {
     if (nextPlaced.length === currentWord.word.length) {
       const spelled = nextPlaced.map((p) => p.letter).join('');
       if (spelled === currentWord.word) {
-        container.sound.sfx('chime');
+        container.sound.sfx('tada_magic');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         session.correct(`susun-${currentWord.word}`);
       } else {
-        container.sound.sfx('boop');
+        container.sound.sfx('error_buzz');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setWobbleToken((t) => t + 1);
         session.wrong();
-        // Beri jeda lalu kembalikan huruf yang salah
+
         setTimeout(() => {
           setPlaced([]);
           setScrambled((prev) => prev.map((t) => ({ ...t, used: false })));
@@ -88,6 +142,7 @@ export function SusunKata({ onExit }: { onExit: () => void }) {
     const itemToRemove = placed[index];
     if (!itemToRemove) return;
     container.sound.sfx('pop');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     setPlaced((prev) => prev.filter((_, idx) => idx !== index));
     setScrambled((prev) =>
@@ -104,17 +159,24 @@ export function SusunKata({ onExit }: { onExit: () => void }) {
       onExit={onExit}
     >
       <View style={styles.container}>
-        {/* Clue Header: Gambar Saja (Tanpa Bocoran Kata) */}
-        <View style={styles.clueCard}>
-          <Text style={styles.clueEmoji}>{currentWord.emoji}</Text>
-          <Text style={styles.clueTextHint}>Tebak gambar di atas ({currentWord.word.length} Huruf)</Text>
-          <BigButton
-            label="🔊 Petunjuk Suara Cici"
-            small
-            color={colors.sunny}
-            edge={colors.sunnyDark}
-            onPress={hearWord}
-          />
+        {/* Clue Header: 3D Gradient Card */}
+        <View style={styles.clueCard3D}>
+          <LinearGradient
+            colors={['#FFFFFF', '#FFFBF5']}
+            style={styles.clueGradient}
+          >
+            <Text style={styles.clueEmoji}>{currentWord.emoji}</Text>
+            <Text style={styles.clueTextHint}>
+              Tebak gambar di atas ({currentWord.word.length} Huruf)
+            </Text>
+            <BigButton
+              label="🔊 Petunjuk Suara Cici"
+              small
+              color={colors.sunny}
+              edge={colors.sunnyDark}
+              onPress={hearWord}
+            />
+          </LinearGradient>
         </View>
 
         {/* Target Slots Area */}
@@ -148,27 +210,20 @@ export function SusunKata({ onExit }: { onExit: () => void }) {
           {scrambled.map((item, idx) => {
             const [bg, edge] = bubblePalette[idx % bubblePalette.length];
             return (
-              <Pressable
+              <TactileLetterTile
                 key={item.id}
-                disabled={item.used}
+                item={item}
+                bg={bg}
+                edge={edge}
                 onPress={() => handleTilePress(item)}
-                style={[
-                  styles.tile,
-                  item.used ? styles.tileUsed : raised(edge),
-                  { backgroundColor: item.used ? '#E0DDD2' : bg },
-                ]}
-              >
-                <Text style={[styles.tileLetter, item.used && { color: '#BDBDBD' }]}>
-                  {item.letter}
-                </Text>
-              </Pressable>
+              />
             );
           })}
         </View>
 
         {/* Undo / Reset Button */}
         {placed.length > 0 && (
-          <View style={{ alignItems: 'center', marginTop: 12 }}>
+          <View style={{ alignItems: 'center', marginTop: 14 }}>
             <BigButton
               label="↩ Ulangi Susun Huruf"
               small
@@ -189,15 +244,24 @@ export function SusunKata({ onExit }: { onExit: () => void }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, alignItems: 'center' },
-  clueCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: radius.lg,
-    padding: 14,
-    alignItems: 'center',
+  clueCard3D: {
     width: '100%',
-    gap: 10,
-    borderBottomWidth: 4,
-    borderBottomColor: colors.line,
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#FED7AA',
+    borderBottomWidth: 5,
+    borderBottomColor: '#FDBA74',
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  clueGradient: {
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
   },
   clueEmoji: { fontSize: 64 },
   clueTextHint: {
@@ -209,7 +273,7 @@ const styles = StyleSheet.create({
   slotRow: {
     flexDirection: 'row',
     gap: 8,
-    marginVertical: 20,
+    marginVertical: 18,
     justifyContent: 'center',
     flexWrap: 'wrap',
   },
@@ -220,16 +284,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
   },
   slotBoxEmpty: {
-    backgroundColor: '#F5F3E9',
-    borderWidth: 2,
-    borderColor: '#D8D4C0',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 2.5,
+    borderColor: '#CBD5E1',
     borderStyle: 'dashed',
   },
   slotBoxFilled: {
     backgroundColor: colors.mint,
-    borderBottomWidth: 4,
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    borderBottomWidth: 5,
     borderBottomColor: colors.mintDark,
   },
   slotText: {
@@ -239,10 +309,11 @@ const styles = StyleSheet.create({
   },
   removeHint: {
     position: 'absolute',
-    top: 2,
-    right: 4,
-    fontSize: 10,
+    top: 3,
+    right: 5,
+    fontSize: 11,
     color: colors.inkSoft,
+    fontFamily: fonts.black,
   },
   instruction: {
     fontFamily: fonts.heavy,
@@ -263,9 +334,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   tileUsed: {
-    opacity: 0.4,
+    opacity: 0.45,
+    elevation: 0,
+    shadowOpacity: 0,
   },
   tileLetter: {
     fontFamily: fonts.black,
@@ -273,4 +353,3 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
 });
-

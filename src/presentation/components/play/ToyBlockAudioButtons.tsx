@@ -11,9 +11,11 @@ import { fonts, radius } from '../../../core/theme';
 import { container } from '../../../core/di/container';
 
 interface ToyBlockAudioButtonsProps {
-  speakText: string;
+  speakText?: string;
   slowParts?: string[];
   disabled?: boolean;
+  onHear?: () => void;
+  onSlow?: () => void;
 }
 
 /**
@@ -24,6 +26,8 @@ export const ToyBlockAudioButtons: React.FC<ToyBlockAudioButtonsProps> = ({
   speakText,
   slowParts,
   disabled = false,
+  onHear,
+  onSlow,
 }) => {
   // Spring values untuk tombol Dengar Cici
   const scaleHear = useSharedValue(1);
@@ -57,7 +61,11 @@ export const ToyBlockAudioButtons: React.FC<ToyBlockAudioButtonsProps> = ({
 
   const handleHearPress = () => {
     if (disabled) return;
-    container.sound.hear(speakText);
+    if (onHear) {
+      onHear();
+    } else if (speakText) {
+      container.sound.hear(speakText);
+    }
   };
 
   const handleSlowPressIn = () => {
@@ -78,9 +86,11 @@ export const ToyBlockAudioButtons: React.FC<ToyBlockAudioButtonsProps> = ({
 
   const handleSlowPress = () => {
     if (disabled) return;
-    if (slowParts && slowParts.length > 0) {
+    if (onSlow) {
+      onSlow();
+    } else if (slowParts && slowParts.length > 0) {
       container.sound.hearSlow(slowParts);
-    } else {
+    } else if (speakText) {
       container.sound.speak(speakText, 0.6);
     }
   };

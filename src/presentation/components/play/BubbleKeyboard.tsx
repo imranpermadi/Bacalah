@@ -6,8 +6,8 @@ import Animated, {
   withRepeat,
   withSequence,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { bubblePalette, colors, fonts } from '../../../core/theme';
 import { container } from '../../../core/di/container';
 
@@ -32,16 +32,25 @@ export function BubbleKey({ label, colorIndex, size, highlight, wobbleToken, dis
   useEffect(() => {
     if (!wobbleToken) return;
     rot.value = withSequence(
-      withTiming(-8, { duration: 70 }),
-      withRepeat(withTiming(8, { duration: 110 }), 4, true),
-      withTiming(0, { duration: 70 })
+      withSpring(-10, { damping: 4, stiffness: 500 }),
+      withSpring(10, { damping: 4, stiffness: 500 }),
+      withSpring(-6, { damping: 5, stiffness: 450 }),
+      withSpring(6, { damping: 5, stiffness: 450 }),
+      withSpring(0, { damping: 8, stiffness: 400 })
     );
   }, [wobbleToken, rot]);
 
   useEffect(() => {
     glow.value = highlight
-      ? withRepeat(withSequence(withTiming(1, { duration: 450 }), withTiming(0.2, { duration: 450 })), -1, true)
-      : withTiming(0);
+      ? withRepeat(
+          withSequence(
+            withSpring(1, { damping: 10, stiffness: 150 }),
+            withSpring(0.2, { damping: 10, stiffness: 150 })
+          ),
+          -1,
+          true
+        )
+      : withSpring(0, { damping: 12, stiffness: 200 });
   }, [highlight, glow]);
 
   const style = useAnimatedStyle(() => ({
@@ -50,7 +59,7 @@ export function BubbleKey({ label, colorIndex, size, highlight, wobbleToken, dis
       { translateY: press.value * 3 },
       { rotate: `${rot.value}deg` },
     ],
-    borderBottomWidth: 4 - press.value * 3,
+    borderBottomWidth: Math.max(1, 4 - press.value * 3),
     shadowOpacity: 0.15 + glow.value * 0.6,
     borderColor: glow.value > 0.5 ? colors.ink : 'rgba(255,255,255,0.0)',
   }));
@@ -59,13 +68,19 @@ export function BubbleKey({ label, colorIndex, size, highlight, wobbleToken, dis
     <Pressable
       disabled={disabled}
       onPressIn={() => {
-        press.value = withTiming(1, { duration: 60 });
-        scale.value = withSpring(0.92, { damping: 12, stiffness: 400 });
+        press.value = withSpring(1, { damping: 14, stiffness: 350 });
+        scale.value = withSpring(0.92, { damping: 14, stiffness: 350 });
+        try {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch {}
         container.sound.sfx('tap');
       }}
       onPressOut={() => {
-        press.value = withTiming(0, { duration: 90 });
-        scale.value = withSequence(withSpring(1.12, { damping: 4, stiffness: 300 }), withSpring(1, { damping: 8 }));
+        press.value = withSpring(0, { damping: 12, stiffness: 220 });
+        scale.value = withSequence(
+          withSpring(1.12, { damping: 5, stiffness: 280 }),
+          withSpring(1, { damping: 8, stiffness: 200 })
+        );
       }}
       onPress={() => onPress(label)}
       accessibilityRole="button"
@@ -74,11 +89,29 @@ export function BubbleKey({ label, colorIndex, size, highlight, wobbleToken, dis
       <Animated.View
         style={[
           styles.key,
-          { width: size, height: size, borderRadius: size / 2, backgroundColor: bg, borderBottomColor: edge, shadowColor: colors.sunnyDark },
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: bg,
+            borderBottomColor: edge,
+            shadowColor: colors.sunnyDark,
+          },
           style,
         ]}
       >
-        <View style={[styles.shine, { width: size * 0.3, height: size * 0.18, borderRadius: size * 0.1, left: size * 0.17, top: size * 0.12 }]} />
+        <View
+          style={[
+            styles.shine,
+            {
+              width: size * 0.3,
+              height: size * 0.18,
+              borderRadius: size * 0.1,
+              left: size * 0.17,
+              top: size * 0.12,
+            },
+          ]}
+        />
         <Text style={[styles.label, { fontSize: size * 0.5 }]}>{label}</Text>
       </Animated.View>
     </Pressable>
@@ -107,7 +140,7 @@ export function BubbleKeyboard({ letters, onPress, highlightLetter, wobbleLetter
     const size = Math.min(88, (width - 24) / list.length - 12);
     return (
       <View style={styles.rowCenter}>
-        {list.map((l, i) => (
+        {list.map((l) => (
           <View key={l} style={{ margin: 6 }}>
             <BubbleKey
               label={l}
@@ -166,4 +199,3 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.black, color: colors.ink },
   rowCenter: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
 });
-

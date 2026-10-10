@@ -1,25 +1,104 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
-import { colors, fonts, radius, raised } from '../../../core/theme';
+import { colors, fonts, radius } from '../../../core/theme';
 import { SENTENCES } from '../../../data/content/curriculum';
 import { ReadingSentence } from '../../../domain/entities/DictationExercise';
 import { Wobble } from '../../components/common/Motion';
 import { BigButton } from '../../components/common/ui';
 import { GameShell, useGameSession } from '../GameShell';
 
+interface OptionItem {
+  word: string;
+  emoji: string;
+}
+
+function TactileWordCard({
+  opt,
+  isPicked,
+  isWobbling,
+  wobbleToken,
+  onSelect,
+}: {
+  opt: OptionItem;
+  isPicked: boolean;
+  isWobbling: boolean;
+  wobbleToken: number;
+  onSelect: () => void;
+}) {
+  const scale = useSharedValue(1);
+  const pressY = useSharedValue(0);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: scale.value },
+      { translateY: pressY.value },
+    ],
+  }));
+
+  return (
+    <View style={styles.cardWrapper}>
+      <Wobble token={isWobbling ? wobbleToken : 0}>
+        <Animated.View style={animStyle}>
+          <Pressable
+            onPressIn={() => {
+              scale.value = withSpring(0.92, { damping: 14, stiffness: 350 });
+              pressY.value = withSpring(3, { damping: 14, stiffness: 350 });
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            onPressOut={() => {
+              scale.value = withSpring(1.0, { damping: 10, stiffness: 200 });
+              pressY.value = withSpring(0, { damping: 10, stiffness: 200 });
+            }}
+            onPress={onSelect}
+            style={[
+              styles.card3D,
+              {
+                borderColor: isPicked ? '#22C55E' : '#E2E8F0',
+                borderBottomColor: isPicked ? '#15803D' : '#CBD5E1',
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={isPicked ? ['#DCFCE7', '#BBF7D0'] : ['#FFFFFF', '#F8FAFC']}
+              style={styles.cardGradient}
+            >
+              <Text style={styles.cardEmoji}>{opt.emoji}</Text>
+              <Text
+                style={[
+                  styles.cardWord,
+                  isPicked && { color: '#15803D' },
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {opt.word.toUpperCase()}
+              </Text>
+            </LinearGradient>
+          </Pressable>
+        </Animated.View>
+      </Wobble>
+    </View>
+  );
+}
+
 /**
  * 🕵️ Detektif Kalimat (Kata yang Hilang)
- * Tampilan diperbarui: Huruf pilihan kata ekstra besar (Font 28px, Bold Tebal),
- * kontras tajam, tombol lebar, dan ramah anak.
+ * Upgraded with Golden Rules: Tactile 3D cards, spring physics, and multisensory feedback.
  */
 export function DetektifKalimat({ onExit }: { onExit: () => void }) {
   const session = useGameSession('detektif-kalimat', 30);
 
   const [currentSentence, setCurrentSentence] = useState<ReadingSentence>(SENTENCES[0]);
   const [blankSentenceText, setBlankSentenceText] = useState('');
-  const [options, setOptions] = useState<{ word: string; emoji: string }[]>([]);
+  const [options, setOptions] = useState<OptionItem[]>([]);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [wobbleWord, setWobbleWord] = useState<string | null>(null);
   const [wobbleToken, setWobbleToken] = useState(0);
@@ -29,12 +108,10 @@ export function DetektifKalimat({ onExit }: { onExit: () => void }) {
     const st = SENTENCES[session.round % SENTENCES.length] || SENTENCES[0];
     setCurrentSentence(st);
 
-    // Ganti kata jawaban di dalam kalimat dengan tanda misteri [ ? ]
     const regex = new RegExp(`\\b${st.answer}\\b`, 'i');
     const blank = st.text.replace(regex, '[  ❓  ]');
     setBlankSentenceText(blank);
 
-    // Buat 4 opsi kata (1 benar + 3 pengecoh)
     const distractors = [
       { word: 'roti', emoji: '🍞' },
       { word: 'susu', emoji: '🥛' },
@@ -75,14 +152,14 @@ export function DetektifKalimat({ onExit }: { onExit: () => void }) {
 
     if (isCorrect) {
       setSelectedWord(word);
-      container.sound.sfx('chime');
+      container.sound.sfx('tada_magic');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       session.correct(`detektif-${currentSentence.id}`);
     } else {
       setWobbleWord(word);
       setWobbleToken((t) => t + 1);
-      container.sound.sfx('boop');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      container.sound.sfx('error_buzz');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       session.wrong();
     }
   };
@@ -96,26 +173,31 @@ export function DetektifKalimat({ onExit }: { onExit: () => void }) {
       onExit={onExit}
     >
       <View style={styles.container}>
-        {/* Mystery Sentence Card */}
-        <View style={styles.mysteryCard}>
-          <View style={styles.mysteryHeaderRow}>
-            <Text style={styles.mysteryEmoji}>{currentSentence.emoji}</Text>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>🔍 Cari Kata yang Hilang:</Text>
+        {/* Mystery Sentence Card: 3D Gradient Surface */}
+        <View style={styles.mysteryCard3D}>
+          <LinearGradient
+            colors={['#FFFFFF', '#FFFBF5']}
+            style={styles.mysteryGradient}
+          >
+            <View style={styles.mysteryHeaderRow}>
+              <Text style={styles.mysteryEmoji}>{currentSentence.emoji}</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>🔍 Cari Kata yang Hilang:</Text>
+              </View>
             </View>
-          </View>
 
-          <Text style={styles.sentenceText}>
-            {selectedWord ? currentSentence.text : blankSentenceText}
-          </Text>
+            <Text style={styles.sentenceText}>
+              {selectedWord ? currentSentence.text : blankSentenceText}
+            </Text>
 
-          <BigButton
-            label="🔊 Dengarkan Kalimat Cici"
-            small
-            color={colors.mint}
-            edge={colors.mintDark}
-            onPress={hearSentence}
-          />
+            <BigButton
+              label="🔊 Dengarkan Kalimat Cici"
+              small
+              color={colors.mint}
+              edge={colors.mintDark}
+              onPress={hearSentence}
+            />
+          </LinearGradient>
         </View>
 
         <Text style={styles.instruction}>
@@ -124,39 +206,16 @@ export function DetektifKalimat({ onExit }: { onExit: () => void }) {
 
         {/* 4 Large Word Option Cards */}
         <View style={styles.cardsGrid}>
-          {options.map((opt) => {
-            const isPicked = selectedWord === opt.word;
-            const isWobbling = wobbleWord === opt.word;
-            return (
-              <View key={opt.word} style={styles.cardWrapper}>
-                <Wobble token={isWobbling ? wobbleToken : 0}>
-                  <Pressable
-                    onPress={() => handleSelect(opt.word)}
-                    style={[
-                      styles.card,
-                      raised(isPicked ? colors.mintDark : '#CBD5E1'),
-                      {
-                        backgroundColor: isPicked ? '#DCFCE7' : '#FFFFFF',
-                        borderColor: isPicked ? '#22C55E' : '#E2E8F0',
-                      },
-                    ]}
-                  >
-                    <Text style={styles.cardEmoji}>{opt.emoji}</Text>
-                    <Text
-                      style={[
-                        styles.cardWord,
-                        isPicked && { color: '#15803D' },
-                      ]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                    >
-                      {opt.word.toUpperCase()}
-                    </Text>
-                  </Pressable>
-                </Wobble>
-              </View>
-            );
-          })}
+          {options.map((opt) => (
+            <TactileWordCard
+              key={opt.word}
+              opt={opt}
+              isPicked={selectedWord === opt.word}
+              isWobbling={wobbleWord === opt.word}
+              wobbleToken={wobbleToken}
+              onSelect={() => handleSelect(opt.word)}
+            />
+          ))}
         </View>
       </View>
     </GameShell>
@@ -165,16 +224,24 @@ export function DetektifKalimat({ onExit }: { onExit: () => void }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, alignItems: 'center', gap: 10 },
-  mysteryCard: {
-    backgroundColor: '#FFFFFF',
+  mysteryCard3D: {
     borderRadius: radius.xl,
-    padding: 16,
-    alignItems: 'center',
+    overflow: 'hidden',
     width: '100%',
-    gap: 10,
     borderWidth: 2,
     borderColor: '#FED7AA',
     borderBottomWidth: 5,
+    borderBottomColor: '#FDBA74',
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  mysteryGradient: {
+    padding: 16,
+    alignItems: 'center',
+    gap: 10,
   },
   mysteryHeaderRow: {
     flexDirection: 'row',
@@ -187,6 +254,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
   },
   badgeText: {
     fontFamily: fonts.black,
@@ -219,21 +288,30 @@ const styles = StyleSheet.create({
   cardWrapper: {
     width: '48%',
   },
-  card: {
+  card3D: {
     width: '100%',
     borderRadius: radius.lg,
-    paddingVertical: 16,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderBottomWidth: 5,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardGradient: {
+    paddingVertical: 14,
     paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    borderWidth: 2.5,
+    gap: 6,
     minHeight: 105,
   },
   cardEmoji: { fontSize: 38 },
   cardWord: {
     fontFamily: fonts.black,
-    fontSize: 28,
+    fontSize: 26,
     color: '#0F172A',
     letterSpacing: 1.5,
   },
