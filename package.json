@@ -8,7 +8,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "sfx": "node scripts/generate-sfx.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:android": "npx -p eas-cli eas build -p android --profile preview"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
