@@ -318,3 +318,4 @@ export const NATURE_SCIENCE_FACTS: NatureScienceFact[] = [
     speakText: 'Bulu sayap burung hantu sangat lembut sehingga bisa terbang hening tanpa suara di malam hari.',
   },
 ];
+

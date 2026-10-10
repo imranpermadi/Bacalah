@@ -267,21 +267,38 @@ export function DikteKuisScreen() {
     }
   };
 
-  // Syllable tiles generator for Mode Opsi 2 (Susun Balok Suku Kata)
+  // Syllable/Letter tiles generator for Mode Opsi 2 (Susun Balok Suku Kata / Huruf)
   const syllableTiles = useMemo(() => {
     if (!currentExercise) return [];
-    const parts = currentExercise.slowParts && currentExercise.slowParts.length > 0
-      ? currentExercise.slowParts
-      : currentExercise.target.split('');
 
-    const distractors = ['BA', 'KI', 'DA', 'MA', 'RO', 'TI', 'SU'].filter(
-      (d) => !parts.map((p) => p.toUpperCase()).includes(d)
+    // Jika level 1 (Huruf tunggal): pilihan harus berupa huruf, bukan suku kata!
+    if (currentExercise.kind === 'letter') {
+      const targetChar = currentExercise.target.toUpperCase();
+      const choices = DictationGenerator.choices(targetChar, 3, weights);
+      return choices.map((c) => c.toUpperCase());
+    }
+
+    // Jika level 2 (Suku kata tunggal):
+    if (currentExercise.kind === 'syllable') {
+      const targetSyl = currentExercise.target.toUpperCase();
+      const syllableDistractors = ['BA', 'KI', 'DA', 'MA', 'RO', 'TI', 'SU', 'LE', 'PA'].filter(
+        (d) => d !== targetSyl
+      ).slice(0, 2);
+      return [targetSyl, ...syllableDistractors].sort(() => Math.random() - 0.5);
+    }
+
+    // Jika level 3-5 (Kata dengan 2 atau lebih suku kata):
+    const parts = (currentExercise.slowParts && currentExercise.slowParts.length > 0
+      ? currentExercise.slowParts
+      : currentExercise.target.match(/.{1,2}/g) || [currentExercise.target]
+    ).map((p) => p.toUpperCase());
+
+    const distractors = ['BA', 'KI', 'DA', 'MA', 'RO', 'TI', 'SU', 'PA', 'LU'].filter(
+      (d) => !parts.includes(d)
     ).slice(0, 2);
 
-    return [...parts.map((p) => p.toUpperCase()), ...distractors].sort(
-      () => Math.random() - 0.5
-    );
-  }, [currentExercise]);
+    return [...parts, ...distractors].sort(() => Math.random() - 0.5);
+  }, [currentExercise, weights]);
 
   const currentKeyLetters = useMemo(() => {
     if (!currentExercise) return [];
@@ -347,7 +364,7 @@ export function DikteKuisScreen() {
       </View>
 
       {/* Level Buttons Bar */}
-      <View style={{ height: 48 }}>
+      <View style={{ height: 60 }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -511,11 +528,13 @@ export function DikteKuisScreen() {
             </View>
           ) : null}
 
-          {/* OPSI 2: Balok Suku Kata Picker */}
+          {/* OPSI 2: Balok Suku Kata / Huruf Picker */}
           {dikteMode === 'balok' ? (
             <View style={styles.syllablePickerArena}>
               <Text style={styles.pickerInstruction}>
-                Ketuk balok suku kata di bawah secara berurutan:
+                {currentExercise?.kind === 'letter'
+                  ? 'Ketuk huruf yang kamu dengar:'
+                  : 'Ketuk balok suku kata di bawah secara berurutan:'}
               </Text>
               <View style={styles.syllableGrid}>
                 {syllableTiles.map((syl, i) => (
@@ -581,16 +600,19 @@ const styles = StyleSheet.create({
   modeBtnTextActive: {
     color: colors.ink,
   },
-  levelBar: { paddingHorizontal: 16, paddingVertical: 6, gap: 8 },
+  levelBar: { paddingHorizontal: 16, paddingVertical: 4, gap: 8 },
   levelPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: radius.md,
     gap: 6,
+    height: 48,
+    minWidth: 80,
   },
-  levelPillEmoji: { fontSize: 16 },
+  levelPillEmoji: { fontSize: 20 },
   levelPillText: { fontFamily: fonts.black, fontSize: 13, color: colors.ink },
   scrollWrapper: { flex: 1 },
   scrollContent: {

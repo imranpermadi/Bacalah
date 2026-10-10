@@ -12,19 +12,28 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
-import { colors, fonts, radius, raised, spacing } from '../../../core/theme';
+import { colors, fonts, radius, raised } from '../../../core/theme';
 import { BigButton } from '../common/ui';
 import { VoiceMicButton } from '../play/VoiceMicButton';
 import { INTERACTIVE_COMICS, InteractiveComic } from '../../../data/content/comicsData';
 
 const { width } = Dimensions.get('window');
 
+/**
+ * 🎨 KomikInteraktifModal
+ * Format Komik Asli:
+ * - Balon dialog terletak TEPAT DI ATAS kepala karakter (dengan ekor segitiga percakapan komik).
+ * - Karakter A dan Karakter B berhadapan dalam panel komik dan memiliki animasi bergerak hidup (bobbing/breathing).
+ * - TIDAK ADA tombol pintasan/curang: Balasan Karakter B HANYA bisa terbuka jika anak merekam suara membaca dialog Karakter A dengan benar.
+ * - Saat benar: Karakter B melompat gembira, balon balasan membesar (pop-in), dan suaranya otomatis berbunyi!
+ */
 export function KomikInteraktifModal({
   visible,
   onClose,
@@ -37,50 +46,88 @@ export function KomikInteraktifModal({
   const [replyRevealed, setReplyRevealed] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
 
-  // Animation shared values for reply bubble pop-up
-  const replyScale = useSharedValue(0.85);
-  const replyOpacity = useSharedValue(0);
+  // Reanimated values for live animated comic characters
+  const charAY = useSharedValue(0);
+  const charBY = useSharedValue(0);
+  const charBScale = useSharedValue(1);
 
-  const animatedReplyStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: replyScale.get() }],
-    opacity: replyOpacity.get(),
-  }));
+  // Reanimated values for reply speech bubble pop-in
+  const replyBubbleScale = useSharedValue(0.7);
+  const replyBubbleOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    // Idle breathing/bobbing for Character A
+    charAY.value = withRepeat(
+      withSequence(
+        withTiming(-6, { duration: 700 }),
+        withTiming(0, { duration: 700 })
+      ),
+      -1,
+      true
+    );
+
+    // Idle breathing/bobbing for Character B
+    charBY.value = withRepeat(
+      withSequence(
+        withTiming(-6, { duration: 750 }),
+        withTiming(0, { duration: 750 })
+      ),
+      -1,
+      true
+    );
+  }, []);
 
   const handleOpenComic = (comic: InteractiveComic) => {
     setSelectedComic(comic);
     setPanelIndex(0);
     setReplyRevealed(false);
     setIsCompleted(false);
-    replyScale.set(0.85);
-    replyOpacity.set(0);
+    replyBubbleScale.set(0.7);
+    replyBubbleOpacity.set(0);
     container.sound.sfx('pop');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const currentPanel = selectedComic?.panels[panelIndex];
 
-  const handleRevealReply = () => {
+  // Callback saat anak berhasil membaca dialog Karakter A via rekaman mic
+  const handleVoiceSuccess = () => {
     if (replyRevealed || !currentPanel) return;
+
     setReplyRevealed(true);
-    replyScale.set(withSpring(1, { dampingRatio: 0.7 }));
-    replyOpacity.set(withTiming(1, { duration: 250 }));
+
+    // Karakter B melompat gembira
+    charBY.value = withSequence(
+      withTiming(-20, { duration: 180 }),
+      withSpring(0, { dampingRatio: 0.6 })
+    );
+    charBScale.value = withSequence(
+      withTiming(1.2, { duration: 180 }),
+      withSpring(1, { dampingRatio: 0.6 })
+    );
+
+    // Balon percakapan Karakter B membesar dengan pop spring
+    replyBubbleScale.set(withSpring(1, { dampingRatio: 0.65 }));
+    replyBubbleOpacity.set(withTiming(1, { duration: 200 }));
+
     container.sound.sfx('chime');
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // Pronounce the reply text from Character B
+    // Suara Cici otomatis membacakan balasan dari Karakter B
     setTimeout(() => {
       container.sound.hear(currentPanel.replyText);
-    }, 300);
+    }, 350);
   };
 
   const handleNextPanel = () => {
     if (!selectedComic) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
     if (panelIndex + 1 < selectedComic.panels.length) {
       setPanelIndex((p) => p + 1);
       setReplyRevealed(false);
-      replyScale.set(0.85);
-      replyOpacity.set(0);
+      replyBubbleScale.set(0.7);
+      replyBubbleOpacity.set(0);
       container.sound.sfx('pop');
     } else {
       setIsCompleted(true);
@@ -88,6 +135,22 @@ export function KomikInteraktifModal({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
+
+  const animatedCharAStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: charAY.value }],
+  }));
+
+  const animatedCharBStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: charBY.value },
+      { scale: charBScale.value },
+    ],
+  }));
+
+  const animatedReplyBubbleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: replyBubbleScale.value }],
+    opacity: replyBubbleOpacity.value,
+  }));
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -120,12 +183,12 @@ export function KomikInteraktifModal({
               <Text style={styles.bannerEmoji}>🎙️💬✨</Text>
               <Text style={styles.bannerTitle}>20 Komik Percakapan Suara</Text>
               <Text style={styles.bannerSubtitle}>
-                Baca balon dialog Karakter A dengan mikrofon. Jika benar, balon balasan Karakter B akan terbuka dengan animasi dan suara!
+                Format komik kartun asli! Baca balon percakapan di atas karakter dengan mikrofon. Jika benar, lawan bicara akan merespons dengan animasi dan suara!
               </Text>
             </View>
 
             <View style={styles.comicGrid}>
-              {INTERACTIVE_COMICS.map((comic, idx) => (
+              {INTERACTIVE_COMICS.map((comic) => (
                 <Pressable
                   key={comic.id}
                   onPress={() => handleOpenComic(comic)}
@@ -138,16 +201,11 @@ export function KomikInteraktifModal({
                   <View style={styles.comicCardLeft}>
                     <Text style={styles.comicEmoji}>{comic.coverEmoji}</Text>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.comicTagRow}>
-                      <Text style={styles.comicIdx}>Komik #{idx + 1}</Text>
-                      <View style={styles.tag}>
-                        <Text style={styles.tagText}>{comic.theme}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.comicTitle}>{comic.title}</Text>
+                  <View style={styles.comicCardRight}>
+                    <Text style={styles.comicBadge}>{comic.theme}</Text>
+                    <Text style={styles.comicTitleText}>{comic.title}</Text>
                     <Text style={styles.comicPanelCount}>
-                      {comic.panels.length} Percakapan Bersuara • Ketuk untuk Mulai →
+                      📖 {comic.panels.length} Percakapan Dialog
                     </Text>
                   </View>
                 </Pressable>
@@ -155,121 +213,140 @@ export function KomikInteraktifModal({
             </View>
           </ScrollView>
         ) : isCompleted ? (
-          /* Completed View */
+          /* Completion Screen */
           <View style={styles.completeContainer}>
-            <Text style={{ fontSize: 76 }}>🎉✨🐰🐱</Text>
-            <Text style={styles.completeTitle}>Komik Selesai Dibaca!</Text>
-            <Text style={styles.completeSubtitle}>
-              Kamu hebat sekali sudah melatih membaca percakapan dalam komik "{selectedComic.title}" dengan lancar!
+            <Text style={{ fontSize: 72 }}>🌟🎉🏆</Text>
+            <Text style={styles.completeTitle}>Hore! Kamu Selesai Membaca Komik!</Text>
+            <Text style={styles.completeDesc}>
+              Hebat sekali! Kamu sudah melatih membaca percakapan dua arah dengan lafal yang jelas dan percaya diri!
             </Text>
             <BigButton
-              label="💬 Pilih Komik Lainnya"
-              color={colors.sunny}
-              edge={colors.sunnyDark}
-              onPress={() => setSelectedComic(null)}
+              label="📚 Baca Komik Lainnya"
+              color={selectedComic.accentColor}
+              edge={colors.coralDark}
+              onPress={() => {
+                setSelectedComic(null);
+                container.sound.sfx('pop');
+              }}
             />
           </View>
         ) : currentPanel ? (
-          /* Comic Reader Panel View */
-          <ScrollView contentContainerStyle={styles.readerContainer}>
-            {/* Setting and Panel Indicator */}
-            <View style={styles.panelBadgeRow}>
-              <Text style={styles.settingText}>📍 {currentPanel.setting}</Text>
-              <Text style={styles.panelCounter}>
-                Panel {panelIndex + 1} / {selectedComic.panels.length}
-              </Text>
+          /* True Comic Panel Reading Canvas */
+          <ScrollView contentContainerStyle={styles.comicReaderContainer} showsVerticalScrollIndicator={false}>
+            {/* Panel Scene Meta Banner */}
+            <View style={styles.sceneMetaRow}>
+              <View style={styles.sceneBadge}>
+                <Text style={styles.sceneBadgeText}>
+                  📍 {currentPanel.setting} • Panel {panelIndex + 1} dari {selectedComic.panels.length}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => container.sound.hear(currentPanel.promptText)}
+                style={styles.listenHintBtn}
+              >
+                <Text style={styles.listenHintText}>🔊 Dengar Contoh</Text>
+              </Pressable>
             </View>
 
-            {/* Bubble 1: Character A (Prompt to be read by child) */}
-            <View style={styles.dialogCardA}>
-              <View style={styles.charHeader}>
-                <Text style={styles.avatarEmoji}>{currentPanel.characterA.avatar}</Text>
-                <View>
-                  <Text style={[styles.charName, { color: currentPanel.characterA.color }]}>
-                    {currentPanel.characterA.name}
-                  </Text>
-                  <Text style={styles.readPromptHint}>🎙️ Giliranmu membaca teks di bawah:</Text>
+            {/* Authentic Comic Strip Stage */}
+            <View style={styles.comicStripFrame}>
+              {/* TOP DIALOGUE ROW: Speech Bubbles ABOVE Characters */}
+              <View style={styles.dialogueRow}>
+                {/* Bubble A (Above Character A) */}
+                <View style={styles.bubbleColA}>
+                  <View style={[styles.comicSpeechBubble, styles.bubbleAActive, replyRevealed && styles.bubbleASolved]}>
+                    <Text style={styles.bubbleSpeakerLabel}>
+                      {replyRevealed ? '✅ Selesai Dibaca' : `🎙️ ${currentPanel.characterA.name}`}
+                    </Text>
+                    <Text style={styles.bubbleText}>
+                      "{currentPanel.promptText}"
+                    </Text>
+                  </View>
+                  {/* Bubble Pointer Tail pointing to Character A */}
+                  <View style={styles.tailA} />
+                </View>
+
+                {/* Bubble B (Above Character B) */}
+                <View style={styles.bubbleColB}>
+                  {replyRevealed ? (
+                    <Animated.View style={[styles.comicSpeechBubble, styles.bubbleBActive, animatedReplyBubbleStyle]}>
+                      <Text style={[styles.bubbleSpeakerLabel, { color: currentPanel.characterB.color }]}>
+                        💬 {currentPanel.characterB.name}
+                      </Text>
+                      <Text style={styles.bubbleText}>
+                        "{currentPanel.replyText}"
+                      </Text>
+                    </Animated.View>
+                  ) : (
+                    /* Locked Mystery Bubble */
+                    <View style={[styles.comicSpeechBubble, styles.bubbleBLocked]}>
+                      <Text style={{ fontSize: 20 }}>🔒❓</Text>
+                      <Text style={styles.bubbleBLockedText}>
+                        Menunggu balasan {currentPanel.characterB.name}...
+                      </Text>
+                    </View>
+                  )}
+                  {/* Bubble Pointer Tail pointing to Character B */}
+                  <View style={[styles.tailB, !replyRevealed && { borderTopColor: '#E2E8F0' }]} />
                 </View>
               </View>
-              <View style={styles.speechBubbleA}>
-                <Text style={styles.speechTextA}>"{currentPanel.promptText}"</Text>
-              </View>
 
-              {/* Action row to speak or mark as read */}
-              <View style={styles.promptActionRow}>
-                <Pressable
-                  onPress={() => container.sound.hear(currentPanel.promptText)}
-                  style={styles.listenCiciBtn}
-                >
-                  <Text style={styles.listenCiciText}>🔊 Dengar Contoh</Text>
-                </Pressable>
-                <Pressable
-                  onPress={handleRevealReply}
-                  style={[styles.confirmReadBtn, replyRevealed && { backgroundColor: '#10B981' }]}
-                >
-                  <Text style={styles.confirmReadText}>
-                    {replyRevealed ? '✅ Sudah Terbuka' : '🎙️ Buka Balasan Lawan Bicara!'}
-                  </Text>
-                </Pressable>
+              {/* BOTTOM CHARACTERS ROW: Animated Characters Facing Each Other */}
+              <View style={styles.charactersRow}>
+                {/* Character A (Left, Speaker) */}
+                <Animated.View style={[styles.characterStageA, animatedCharAStyle]}>
+                  <Text style={styles.characterAvatar}>{currentPanel.characterA.avatar}</Text>
+                  <View style={[styles.charNameBadge, { backgroundColor: currentPanel.characterA.color }]}>
+                    <Text style={styles.charNameBadgeText}>{currentPanel.characterA.name}</Text>
+                  </View>
+                  <View style={styles.charShadow} />
+                </Animated.View>
+
+                <View style={styles.vsDivider}>
+                  <Text style={styles.vsText}>💬</Text>
+                </View>
+
+                {/* Character B (Right, Listener / Respondent) */}
+                <Animated.View style={[styles.characterStageB, animatedCharBStyle]}>
+                  <Text style={styles.characterAvatar}>{currentPanel.characterB.avatar}</Text>
+                  <View style={[styles.charNameBadge, { backgroundColor: currentPanel.characterB.color }]}>
+                    <Text style={styles.charNameBadgeText}>{currentPanel.characterB.name}</Text>
+                  </View>
+                  <View style={styles.charShadow} />
+                </Animated.View>
               </View>
             </View>
 
-            {/* Mic Button for Real Voice Reading */}
-            {!replyRevealed && (
-              <View style={styles.micBox}>
-                <Text style={styles.micNotice}>Ucapkan kalimat di atas ke mikrofon:</Text>
+            {/* Child Interactive Voice Recording Section */}
+            {!replyRevealed ? (
+              <View style={styles.voiceStation}>
+                <Text style={styles.voiceStationTitle}>
+                  🎙️ Baca dialog {currentPanel.characterA.name} di atas ke mikrofon:
+                </Text>
+                <Text style={styles.voiceStationSub}>
+                  (Balasan {currentPanel.characterB.name} akan terbuka otomatis jika kamu membaca dengan benar!)
+                </Text>
                 <VoiceMicButton
-                  target={currentPanel.promptText.slice(0, 25)}
-                  onResult={(sc) => {
-                    if (sc.stars >= 2) handleRevealReply();
+                  target={currentPanel.promptText.slice(0, 30)}
+                  speakText={currentPanel.promptText}
+                  onResult={(res) => {
+                    if (res.stars >= 1) {
+                      handleVoiceSuccess();
+                    }
                   }}
                 />
               </View>
-            )}
-
-            {/* Bubble 2: Character B (Hidden until child reads Bubble 1) */}
-            {replyRevealed ? (
-              <Animated.View style={[styles.dialogCardB, animatedReplyStyle]}>
-                <View style={[styles.charHeader, { justifyContent: 'flex-end' }]}>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[styles.charName, { color: currentPanel.characterB.color }]}>
-                      {currentPanel.characterB.name}
-                    </Text>
-                    <Text style={styles.readPromptHint}>✨ Menjawab kamu:</Text>
-                  </View>
-                  <Text style={styles.avatarEmoji}>{currentPanel.characterB.avatar}</Text>
-                </View>
-                <View style={styles.speechBubbleB}>
-                  <Text style={styles.speechTextB}>"{currentPanel.replyText}"</Text>
-                </View>
-                <Pressable
-                  onPress={() => container.sound.hear(currentPanel.replyText)}
-                  style={[styles.listenCiciBtn, { alignSelf: 'flex-end', marginTop: 8 }]}
-                >
-                  <Text style={styles.listenCiciText}>🔊 Ulangi Suara Balasan</Text>
-                </Pressable>
-              </Animated.View>
             ) : (
-              /* Mystery Locked Bubble Placeholder (Cliffhanger) */
-              <View style={styles.lockedReplyBox}>
-                <Text style={{ fontSize: 36 }}>🔒💬</Text>
-                <Text style={styles.lockedReplyTitle}>
-                  Balasan {currentPanel.characterB.name} Masih Terkunci!
+              /* Success / Next Action */
+              <View style={styles.unlockedStation}>
+                <Text style={styles.unlockedCongratsText}>
+                  ✨ Hore! {currentPanel.characterB.name} sudah menjawabmu!
                 </Text>
-                <Text style={styles.lockedReplyDesc}>
-                  Baca kalimat {currentPanel.characterA.name} di atas untuk mendengar apa kata {currentPanel.characterB.name}!
-                </Text>
-              </View>
-            )}
-
-            {/* Next Panel Button */}
-            {replyRevealed && (
-              <View style={{ width: '100%', marginTop: 12 }}>
                 <BigButton
                   label={
                     panelIndex + 1 === selectedComic.panels.length
                       ? '🎉 Selesai Membaca Komik Ini!'
-                      : 'Lanjut ke Percakapan Berikutnya →'
+                      : 'Lanjut ke Percakapan Berikutnya ➡️'
                   }
                   color={selectedComic.accentColor}
                   edge={colors.coralDark}
@@ -302,8 +379,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: '#F1F5F9',
   },
-  backBtnText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
-  headerTitle: { fontFamily: fonts.black, fontSize: 16, color: colors.ink },
+  backBtnText: {
+    fontFamily: fonts.bold,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  headerTitle: {
+    fontFamily: fonts.black,
+    fontSize: 16,
+    color: colors.ink,
+  },
   listContainer: { padding: 16, gap: 14 },
   bannerBox: {
     backgroundColor: '#EFF6FF',
@@ -323,7 +408,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 18,
   },
-  comicGrid: { gap: 12 },
+  comicGrid: { gap: 12, marginTop: 4 },
   comicCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: radius.lg,
@@ -335,156 +420,252 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   comicCardLeft: {
-    width: 50,
-    height: 50,
-    borderRadius: radius.md,
-    backgroundColor: '#FFF7ED',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
   },
   comicEmoji: { fontSize: 32 },
-  comicTagRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  comicIdx: { fontFamily: fonts.bold, fontSize: 11, color: colors.inkSoft },
-  tag: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: radius.pill,
-  },
-  tagText: { fontFamily: fonts.bold, fontSize: 11, color: colors.inkSoft },
-  comicTitle: { fontFamily: fonts.black, fontSize: 16, color: colors.ink, marginTop: 2 },
-  comicPanelCount: { fontFamily: fonts.bold, fontSize: 12, color: colors.coral, marginTop: 4 },
-  readerContainer: { padding: 18, gap: 16, alignItems: 'center' },
-  panelBadgeRow: {
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  settingText: { fontFamily: fonts.bold, fontSize: 13, color: colors.inkSoft },
-  panelCounter: {
-    fontFamily: fonts.black,
-    fontSize: 12,
-    color: '#2563EB',
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.pill,
-  },
-  dialogCardA: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: radius.xl,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: '#FED7AA',
-    borderBottomWidth: 5,
-  },
-  charHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatarEmoji: { fontSize: 36 },
-  charName: { fontFamily: fonts.black, fontSize: 15 },
-  readPromptHint: { fontFamily: fonts.regular, fontSize: 11, color: colors.inkSoft },
-  speechBubbleA: {
-    backgroundColor: '#FFF7ED',
-    borderRadius: radius.lg,
-    padding: 16,
-    marginTop: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FB923C',
-  },
-  speechTextA: {
-    fontFamily: fonts.black,
-    fontSize: 20,
-    color: colors.ink,
-    lineHeight: 30,
-  },
-  promptActionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-    gap: 8,
-  },
-  listenCiciBtn: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.pill,
-  },
-  listenCiciText: { fontFamily: fonts.bold, fontSize: 12, color: colors.inkSoft },
-  confirmReadBtn: {
-    backgroundColor: colors.coral,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-  },
-  confirmReadText: { fontFamily: fonts.bold, fontSize: 12, color: '#FFFFFF' },
-  micBox: {
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-  },
-  micNotice: { fontFamily: fonts.bold, fontSize: 12, color: colors.inkSoft },
-  dialogCardB: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: radius.xl,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: '#BBF7D0',
-    borderBottomWidth: 5,
-  },
-  speechBubbleB: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: radius.lg,
-    padding: 16,
-    marginTop: 10,
-    borderRightWidth: 4,
-    borderRightColor: '#22C55E',
-  },
-  speechTextB: {
+  comicCardRight: { flex: 1, gap: 2 },
+  comicBadge: {
     fontFamily: fonts.bold,
-    fontSize: 18,
-    color: colors.ink,
-    lineHeight: 28,
+    fontSize: 11,
+    color: colors.coral,
+    textTransform: 'uppercase',
   },
-  lockedReplyBox: {
-    width: '100%',
-    backgroundColor: '#F8FAFC',
-    borderRadius: radius.xl,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: '#CBD5E1',
-    gap: 6,
-  },
-  lockedReplyTitle: {
-    fontFamily: fonts.black,
-    fontSize: 15,
-    color: colors.inkSoft,
-    textAlign: 'center',
-  },
-  lockedReplyDesc: {
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.inkSoft,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
+  comicTitleText: { fontFamily: fonts.black, fontSize: 15, color: colors.ink },
+  comicPanelCount: { fontFamily: fonts.regular, fontSize: 12, color: colors.inkSoft },
   completeContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    gap: 14,
+    gap: 16,
   },
-  completeTitle: { fontFamily: fonts.black, fontSize: 24, color: colors.ink },
-  completeSubtitle: {
+  completeTitle: {
+    fontFamily: fonts.black,
+    fontSize: 22,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+  completeDesc: {
     fontFamily: fonts.regular,
     fontSize: 15,
     color: colors.inkSoft,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  comicReaderContainer: {
+    padding: 16,
+    gap: 14,
+  },
+  sceneMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sceneBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  sceneBadgeText: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  listenHintBtn: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  listenHintText: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: '#92400E',
+  },
+  comicStripFrame: {
+    backgroundColor: '#FFFDF5',
+    borderRadius: radius.xl,
+    padding: 14,
+    borderWidth: 3,
+    borderColor: '#0F172A',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    gap: 8,
+  },
+  dialogueRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    minHeight: 120,
+  },
+  bubbleColA: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  bubbleColB: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  comicSpeechBubble: {
+    width: '100%',
+    borderRadius: radius.lg,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: '#0F172A',
+    minHeight: 88,
+    justifyContent: 'center',
+  },
+  bubbleAActive: {
+    backgroundColor: '#FEF08A',
+  },
+  bubbleASolved: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#16A34A',
+  },
+  bubbleBActive: {
+    backgroundColor: '#FCE7F3',
+    borderColor: '#DB2777',
+  },
+  bubbleBLocked: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderStyle: 'dashed',
+  },
+  bubbleBLockedText: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  bubbleSpeakerLabel: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: '#854D0E',
+    marginBottom: 4,
+  },
+  bubbleText: {
+    fontFamily: fonts.heavy,
+    fontSize: 14,
+    color: colors.ink,
+    lineHeight: 20,
+  },
+  tailA: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 10,
+    borderRightWidth: 10,
+    borderTopWidth: 12,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#0F172A',
+    alignSelf: 'center',
+    marginTop: -2,
+  },
+  tailB: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 10,
+    borderRightWidth: 10,
+    borderTopWidth: 12,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#0F172A',
+    alignSelf: 'center',
+    marginTop: -2,
+  },
+  charactersRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    paddingTop: 8,
+    paddingBottom: 6,
+  },
+  characterStageA: {
+    alignItems: 'center',
+  },
+  characterStageB: {
+    alignItems: 'center',
+  },
+  characterAvatar: {
+    fontSize: 58,
+  },
+  charNameBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    marginTop: 4,
+  },
+  charNameBadgeText: {
+    fontFamily: fonts.black,
+    fontSize: 10,
+    color: '#FFFFFF',
+  },
+  charShadow: {
+    width: 44,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    marginTop: 2,
+  },
+  vsDivider: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 20,
+  },
+  vsText: {
+    fontSize: 22,
+    opacity: 0.5,
+  },
+  voiceStation: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: radius.xl,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    gap: 6,
+  },
+  voiceStationTitle: {
+    fontFamily: fonts.heavy,
+    fontSize: 14,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+  voiceStationSub: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.inkSoft,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  unlockedStation: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: radius.xl,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#6EE7B7',
+    gap: 10,
+  },
+  unlockedCongratsText: {
+    fontFamily: fonts.black,
+    fontSize: 14,
+    color: '#047857',
+    textAlign: 'center',
   },
 });

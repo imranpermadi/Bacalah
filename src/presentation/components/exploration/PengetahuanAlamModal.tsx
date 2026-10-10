@@ -14,6 +14,7 @@ import { container } from '../../../core/di/container';
 import { colors, fonts, radius, raised, spacing } from '../../../core/theme';
 import { BigButton } from '../common/ui';
 import { NATURE_SCIENCE_FACTS, NatureScienceFact } from '../../../data/content/natureScienceData';
+import { ScienceAnimatedStage } from './ScienceAnimatedStage';
 
 const { width } = Dimensions.get('window');
 
@@ -146,10 +147,12 @@ export function PengetahuanAlamModal({
           </ScrollView>
         ) : (
           /* Fact Detail Reader View */
-          <ScrollView contentContainerStyle={styles.readerContainer}>
-            {/* Topic Hero Card */}
+          <ScrollView contentContainerStyle={styles.readerContainer} showsVerticalScrollIndicator={false}>
+            {/* Animated Science Stage */}
+            <ScienceAnimatedStage fact={activeFact} />
+
+            {/* Question & Short Summary Card */}
             <View style={[styles.heroCard, { borderColor: activeFact.accentColor }]}>
-              <Text style={styles.bigHeroEmoji}>{activeFact.emoji}</Text>
               <View style={styles.categoryBadgeHero}>
                 <Text style={styles.categoryBadgeTextHero}>{activeFact.category}</Text>
               </View>
@@ -157,36 +160,32 @@ export function PengetahuanAlamModal({
               <View style={styles.questionBubble}>
                 <Text style={styles.questionBubbleText}>❓ {activeFact.question}</Text>
               </View>
-            </View>
-
-            {/* Short Summary Card */}
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryHeader}>📌 Intisari Pengetahuan:</Text>
               <Text style={styles.summaryText}>{activeFact.shortSummary}</Text>
             </View>
 
-            {/* Audio Button */}
+            {/* Audio Explanation Button */}
             <Pressable
               onPress={() => handleSpeak(activeFact.speakText)}
-              style={styles.listenFactBtn}
+              style={[styles.listenFactBtn, { backgroundColor: activeFact.accentColor }]}
             >
               <Text style={styles.listenFactText}>🔊 Dengarkan Penjelasan Cici</Text>
             </Pressable>
 
-            {/* Detailed Reading Paragraphs */}
-            <View style={styles.detailBox}>
-              <Text style={styles.detailHeader}>📖 Bacaan Sains Lengkap:</Text>
-              {activeFact.detailParagraphs.map((para, i) => (
-                <Text key={i} style={styles.paragraphText}>
-                  {para}
-                </Text>
-              ))}
-            </View>
-
-            {/* Fun Fact Card */}
+            {/* Fun Fact Card (Tahukah Kamu?) */}
             <View style={styles.funFactBox}>
               <Text style={styles.funFactTitle}>💡 Tahukah Kamu?</Text>
               <Text style={styles.funFactContent}>{activeFact.funFact}</Text>
+            </View>
+
+            {/* Bite-sized Key Knowledge Cards */}
+            <View style={styles.detailBox}>
+              <Text style={styles.detailHeader}>🔍 Rangkuman Sains Anak Pintar:</Text>
+              {activeFact.detailParagraphs.map((para, i) => (
+                <View key={i} style={styles.pointRow}>
+                  <Text style={styles.pointBullet}>✨</Text>
+                  <Text style={styles.paragraphText}>{para}</Text>
+                </View>
+              ))}
             </View>
 
             <BigButton
@@ -355,7 +354,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
-  listenFactText: { fontFamily: fonts.bold, fontSize: 14, color: '#92400E' },
+  listenFactText: { fontFamily: fonts.bold, fontSize: 14, color: '#FFFFFF' },
   detailBox: {
     backgroundColor: '#FFFFFF',
     borderRadius: radius.lg,
@@ -365,11 +364,21 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   detailHeader: { fontFamily: fonts.black, fontSize: 16, color: colors.ink },
+  pointRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  pointBullet: {
+    fontSize: 16,
+    marginTop: 2,
+  },
   paragraphText: {
+    flex: 1,
     fontFamily: fonts.regular,
-    fontSize: 17,
+    fontSize: 15,
     color: colors.ink,
-    lineHeight: 28,
+    lineHeight: 24,
     textAlign: 'left',
   },
   funFactBox: {
@@ -382,3 +391,4 @@ const styles = StyleSheet.create({
   funFactTitle: { fontFamily: fonts.black, fontSize: 14, color: '#C2410C', marginBottom: 4 },
   funFactContent: { fontFamily: fonts.bold, fontSize: 15, color: '#9A3412', lineHeight: 22 },
 });
+

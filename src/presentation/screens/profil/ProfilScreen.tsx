@@ -446,24 +446,56 @@ export function ProfilScreen() {
           </View>
         </View>
 
-        {/* Settings & Reset */}
+        {/* Settings & Audio Controls */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>⚙️ Pengaturan Pembelajaran</Text>
-          <View style={{ gap: 10, marginTop: 8 }}>
+          <Text style={styles.sectionTitle}>⚙️ Pengaturan Pembelajaran & Suara</Text>
+          <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: colors.inkSoft, marginTop: 4 }}>
+            Sesuaikan kecepatan pelafalan Cici saat membacakan huruf, suku kata, dan cerita agar optimal untuk anak:
+          </Text>
+
+          <View style={{ flexDirection: 'row', gap: 8, marginVertical: 10 }}>
+            {[
+              { label: '🐢 Pelan', rate: 0.65, desc: 'Untuk Balita / Pemula' },
+              { label: '🐱 Normal', rate: 0.85, desc: 'Standar Ramah Anak' },
+              { label: '🚀 Cepat', rate: 1.0, desc: 'Untuk Anak Lancar' },
+            ].map((spd) => (
+              <Pressable
+                key={spd.label}
+                onPress={() => {
+                  container.sound.speak(`Halo! Aku Cici, senang sekali belajar bersamamu!`, spd.rate);
+                  container.sound.sfx('pop');
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: radius.md,
+                  padding: 10,
+                  alignItems: 'center',
+                  borderWidth: 2,
+                  borderColor: '#FDE68A',
+                }}
+              >
+                <Text style={{ fontFamily: fonts.black, fontSize: 14, color: colors.ink }}>
+                  {spd.label}
+                </Text>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 10, color: colors.inkSoft, textAlign: 'center', marginTop: 2 }}>
+                  {spd.desc}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={{ gap: 10, marginTop: 4 }}>
             <BigButton
-              label={
-                profile.mode === 'pemula'
-                  ? 'Ganti ke Mode Mandiri (26 Huruf) 🦁'
-                  : 'Ganti ke Mode Pemula (4 Huruf) 🐣'
-              }
-              color={colors.peach}
-              edge={colors.peachDark}
+              label="🔊 Tes Artikulasi Suara Cici"
+              color={colors.mint}
+              edge={colors.mintDark}
               onPress={() =>
-                setMode(profile.mode === 'pemula' ? 'mandiri' : 'pemula')
+                container.sound.speak('Halo adik pintar! Ayo terus rajin membaca bersama Cici ya! 🐱✨')
               }
             />
             <BigButton
-              label="🗑️ Reset Seluruh Data & Bintang"
+              label="🗑️ Reset Seluruh Data & Bintang Anak"
               color="#FFF0F0"
               edge="#FFAAAA"
               textColor="#D93838"

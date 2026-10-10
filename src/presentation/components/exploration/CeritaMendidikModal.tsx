@@ -24,6 +24,7 @@ import { BigButton } from '../common/ui';
 import { MascotCici } from '../play/MascotCici';
 import { VoiceMicButton } from '../play/VoiceMicButton';
 import { EDUCATIONAL_STORIES, EducationalStory } from '../../../data/content/storiesData';
+import { AnimatedStoryScene } from './AnimatedStoryScene';
 
 const { width } = Dimensions.get('window');
 
@@ -38,6 +39,7 @@ export function CeritaMendidikModal({
   const [currentPage, setCurrentPage] = useState(0);
   const [isNarrating, setIsNarrating] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [pageCompleted, setPageCompleted] = useState<Record<number, boolean>>({});
 
   // Floating breathing animation for story illustration character
   const floatAnim = useSharedValue(0);
@@ -63,6 +65,7 @@ export function CeritaMendidikModal({
   const handleOpenStory = (story: EducationalStory) => {
     setSelectedStory(story);
     setCurrentPage(0);
+    setPageCompleted({});
     setIsCompleted(false);
     container.sound.sfx('pop');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -203,24 +206,24 @@ export function CeritaMendidikModal({
               </View>
             </View>
 
-            {/* Cartoon Anime Animated Illustration Card */}
-            <View style={[styles.illustrationCard, { borderColor: selectedStory.themeColor }]}>
-              <Animated.View style={[styles.illustrationBox, animatedIllustrationStyle]}>
-                <Text style={styles.bigIllustrationEmoji}>
-                  {selectedStory.pages[currentPage].illustrationEmoji}
+            {/* Cartoon Anime Animated Illustration Scene */}
+            <View style={styles.sceneWrapper}>
+              <AnimatedStoryScene
+                storyId={selectedStory.id}
+                pageIndex={currentPage}
+                coverEmoji={selectedStory.coverEmoji}
+                illustrationEmoji={selectedStory.pages[currentPage].illustrationEmoji}
+                characterMood={selectedStory.pages[currentPage].characterMood}
+                themeColor={selectedStory.themeColor}
+              />
+              <Pressable
+                onPress={() => handlePlayAudio(selectedStory.pages[currentPage].text)}
+                style={[styles.listenNarratorBtn, { backgroundColor: selectedStory.themeColor }]}
+              >
+                <Text style={styles.listenNarratorText}>
+                  {isNarrating ? '🔊 Sedang Menceritakan…' : '🔊 Dengarkan Cerita Cici'}
                 </Text>
-                <Text style={styles.ciciMiniMascot}>🐱</Text>
-              </Animated.View>
-              <View style={styles.actionAudioRow}>
-                <Pressable
-                  onPress={() => handlePlayAudio(selectedStory.pages[currentPage].text)}
-                  style={styles.listenNarratorBtn}
-                >
-                  <Text style={styles.listenNarratorText}>
-                    {isNarrating ? '🔊 Sedang Membaca…' : '🔊 Dengarkan Cici'}
-                  </Text>
-                </Pressable>
-              </View>
+              </Pressable>
             </View>
 
             {/* Story Text Box (Big Readable Typography) */}
@@ -233,12 +236,14 @@ export function CeritaMendidikModal({
             {/* Interactive Voice Mic Section */}
             <View style={styles.micSection}>
               <Text style={styles.micInstruction}>
-                🎙️ Tekan mikrofon di bawah untuk giliranmu membaca kalimat ini:
+                🎙️ Giliranmu membaca! Tekan mikrofon di bawah:
               </Text>
               <VoiceMicButton
                 target={selectedStory.pages[currentPage].text.slice(0, 30)}
+                speakText={selectedStory.pages[currentPage].text}
                 onResult={(score) => {
-                  if (score.stars >= 2) {
+                  if (score.stars >= 1) {
+                    setPageCompleted((prev) => ({ ...prev, [currentPage]: true }));
                     container.sound.sfx('chime');
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                   }
@@ -246,7 +251,7 @@ export function CeritaMendidikModal({
               />
             </View>
 
-            {/* Navigation Buttons */}
+            {/* Navigation Buttons: Locked until child reads with mic */}
             <View style={styles.navRow}>
               <Pressable
                 onPress={handlePrevPage}
@@ -255,14 +260,28 @@ export function CeritaMendidikModal({
               >
                 <Text style={styles.navBtnText}>← Sebelumnya</Text>
               </Pressable>
-              <Pressable
-                onPress={handleNextPage}
-                style={[styles.navBtn, styles.navBtnPrimary, { backgroundColor: selectedStory.themeColor }]}
-              >
-                <Text style={styles.navBtnTextPrimary}>
-                  {currentPage + 1 === selectedStory.pages.length ? 'Selesai! 🎉' : 'Lanjut →'}
-                </Text>
-              </Pressable>
+
+              {pageCompleted[currentPage] ? (
+                <Pressable
+                  onPress={handleNextPage}
+                  style={[
+                    styles.navBtn,
+                    styles.navBtnPrimary,
+                    { backgroundColor: selectedStory.themeColor },
+                    raised(colors.sunnyDark),
+                  ]}
+                >
+                  <Text style={styles.navBtnTextPrimary}>
+                    {currentPage + 1 === selectedStory.pages.length ? 'Selesai! 🏆' : 'Halaman Berikutnya ➡️'}
+                  </Text>
+                </Pressable>
+              ) : (
+                <View style={styles.lockedHintBox}>
+                  <Text style={styles.lockedHintText}>
+                    🔒 Baca & rekam suara di atas untuk membuka halaman berikutnya!
+                  </Text>
+                </View>
+              )}
             </View>
           </ScrollView>
         )}
@@ -451,10 +470,34 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
     textAlign: 'center',
   },
+  sceneWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 8,
+  },
+  lockedHintBox: {
+    flex: 1,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    marginLeft: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockedHintText: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: '#92400E',
+    textAlign: 'center',
+  },
   navRow: {
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 8,
   },
   navBtn: {

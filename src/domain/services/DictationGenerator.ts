@@ -19,8 +19,8 @@ export const DictationGenerator = {
         kind: 'letter' as const,
         level: 1,
         target: a.letter,
-        speakText: a.speak,
-        slowParts: [a.speak],
+        speakText: `${a.letter}. ${a.word}`,
+        slowParts: [a.letter],
         emoji: a.emoji,
       }));
       // Ekstra varian fonik agar minimal 30 soal unik
@@ -31,8 +31,8 @@ export const DictationGenerator = {
           kind: 'letter' as const,
           level: 1,
           target: char,
-          speakText: info.speak,
-          slowParts: [info.speak],
+          speakText: `${info.letter}. ${info.word}`,
+          slowParts: [info.letter],
           emoji: info.emoji,
         };
       });

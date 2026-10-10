@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withSequence,
   withSpring,
   withTiming,
@@ -16,29 +17,47 @@ import { useAppStore } from '../../stores/useAppStore';
 import { GameShell, useGameSession } from '../GameShell';
 import { pickWord } from '../useLetterRound';
 
+const { width } = Dimensions.get('window');
+
 /**
- * 🍕 Pabrik Pemotong Suku Kata Cici
- * Gameplay diperbarui:
- * - Kata disajikan sebagai balok roti/kue suku kata yang besar dan jelas.
- * - Tombol gunting ✂️ besar (64x64 px) dengan hitSlop lebar sehingga responsif dan anti-meleset.
- * - Saat digunting: animasi kartu suku kata membelah diri dengan haptic getar dan suara Cici melafalkan suku kata!
+ * ✂️ Game Potong Suku Kata Fleksibel & Menantang
+ * - Kata ditampilkan sebagai deretan balok huruf utuh.
+ * - Tombol gunting ✂️ tersedia di SETIAP sela antar huruf (anak bebas memilih di mana memotong).
+ * - Jika memotong di tempat yang benar: balok membelah menjadi suku kata, suara fonik berbunyi, dan dapat bintang!
+ * - Jika memotong di tempat yang salah: gunting bergoyang merah, suara boop, dan Cici memberi petunjuk suku kata yang tepat!
  */
 export function PotongSukuKata({ onExit }: { onExit: () => void }) {
   const session = useGameSession('potong', 30);
   const recordLetter = useAppStore((s) => s.recordLetter);
 
   const [wordItem, setWordItem] = useState<WordItem>(() => pickWord());
-  const [cutSyllables, setCutSyllables] = useState<number[]>([]); // indeks celah yang sudah dipotong
+  const [successfulCuts, setSuccessfulCuts] = useState<number[]>([]);
+  const [wrongCutIndex, setWrongCutIndex] = useState<number | null>(null);
+  const [hintMessage, setHintMessage] = useState<string>('');
 
-  // Reanimated values for slice effect
-  const sliceSpread = useSharedValue(0);
+  // Wobble shared value for incorrect cut
+  const wobbleX = useSharedValue(0);
+
+  // Calculate correct cut gap indices
+  // For 'BOLA' (['BO', 'LA']), length 4: gap index 2 is correct (between O and L).
+  // For 'KELINCI' (['KE', 'LIN', 'CI']), length 7: gap index 2 and 5 are correct.
+  const correctCutIndices = useMemo(() => {
+    const indices: number[] = [];
+    let cumulative = 0;
+    for (let i = 0; i < wordItem.syllables.length - 1; i++) {
+      cumulative += wordItem.syllables[i].length;
+      indices.push(cumulative);
+    }
+    return indices;
+  }, [wordItem]);
 
   useEffect(() => {
     if (session.finished) return;
     const w = pickWord();
     setWordItem(w);
-    setCutSyllables([]);
-    sliceSpread.set(0);
+    setSuccessfulCuts([]);
+    setWrongCutIndex(null);
+    setHintMessage('');
 
     const t = setTimeout(() => {
       container.sound.hearSlow(w.syllables.map((s) => s.toLowerCase()));
@@ -46,45 +65,71 @@ export function PotongSukuKata({ onExit }: { onExit: () => void }) {
     return () => clearTimeout(t);
   }, [session.round, session.finished]);
 
-  // Jumlah celah pemotongan yang dibutuhkan = jumlah suku kata - 1
-  const totalCutsNeeded = Math.max(1, wordItem.syllables.length - 1);
+  const letters = wordItem.word.toUpperCase().split('');
+  const totalCutsNeeded = correctCutIndices.length;
 
   const handleCutGap = (gapIndex: number) => {
-    if (cutSyllables.includes(gapIndex)) return;
+    // Gap index corresponds to cut between letters[gapIndex - 1] and letters[gapIndex]
+    if (successfulCuts.includes(gapIndex)) return;
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    container.sound.sfx('pop');
+    const isCorrect = correctCutIndices.includes(gapIndex);
 
-    // Trigger slice bounce animation
-    sliceSpread.set(
-      withSequence(
-        withTiming(12, { duration: 120 }),
-        withSpring(6, { dampingRatio: 0.8 })
-      )
-    );
-
-    const nextCuts = [...cutSyllables, gapIndex];
-    setCutSyllables(nextCuts);
-
-    // Lafalkan suku kata yang terpotong
-    const cutSyl = wordItem.syllables[gapIndex] || wordItem.syllables[0];
-    container.sound.hear(cutSyl.toLowerCase());
-
-    // Cek apakah seluruh suku kata sudah terpotong
-    if (nextCuts.length >= totalCutsNeeded) {
-      wordItem.word.split('').forEach((l) => recordLetter(l, true));
-      container.sound.sfx('chime');
+    if (isCorrect) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      session.correct(`potong-${wordItem.word}`);
+      container.sound.sfx('pop');
+
+      const nextCuts = [...successfulCuts, gapIndex];
+      setSuccessfulCuts(nextCuts);
+      setWrongCutIndex(null);
+
+      // Find which syllable was just isolated
+      const sortedCuts = [0, ...nextCuts.sort((a, b) => a - b), letters.length];
+      const cutPos = sortedCuts.indexOf(gapIndex);
+      const sylText = wordItem.word.slice(sortedCuts[cutPos - 1], gapIndex);
+      if (sylText) {
+        container.sound.hear(sylText.toLowerCase());
+      }
+
+      setHintMessage(`Bagus! Potongan "${sylText.toUpperCase()}" tepat! ✨`);
+
+      // Check if all syllable boundaries have been cut
+      if (nextCuts.length >= totalCutsNeeded) {
+        wordItem.word.split('').forEach((l) => recordLetter(l, true));
+        container.sound.sfx('chime');
+        session.correct(`potong-${wordItem.word}`);
+        setHintMessage(`Hore! ${wordItem.word.toUpperCase()} berhasil dipotong: ${wordItem.syllables.join(' - ')}! 🌟`);
+
+        setTimeout(() => {
+          container.sound.hear(wordItem.word.toLowerCase());
+        }, 550);
+      }
+    } else {
+      // Incorrect cut!
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      container.sound.sfx('boop');
+      session.wrong();
+
+      setWrongCutIndex(gapIndex);
+      wobbleX.value = withSequence(
+        withTiming(-8, { duration: 60 }),
+        withTiming(8, { duration: 60 }),
+        withTiming(-6, { duration: 60 }),
+        withTiming(6, { duration: 60 }),
+        withTiming(0, { duration: 60 })
+      );
+
+      setHintMessage(
+        `Ups, potongannya belum pas! Suku katanya adalah: ${wordItem.syllables.join(' - ')}. Coba lagi ya! 🐱`
+      );
 
       setTimeout(() => {
-        container.sound.hear(wordItem.word.toLowerCase());
-      }, 500);
+        setWrongCutIndex(null);
+      }, 1200);
     }
   };
 
-  const animatedSliceStyle = useAnimatedStyle(() => ({
-    columnGap: 8 + sliceSpread.get(),
+  const wobbleStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: wobbleX.value }],
   }));
 
   return (
@@ -96,65 +141,99 @@ export function PotongSukuKata({ onExit }: { onExit: () => void }) {
       onExit={onExit}
     >
       <View style={styles.container}>
-        {/* Visual Header */}
+        {/* Top Instruction Card */}
         <View style={styles.topCard}>
           <Text style={styles.wordEmoji}>{wordItem.emoji}</Text>
           <Text style={styles.instructionTitle}>
-            Ketuk tombol ✂️ di bawah untuk memotong kata menjadi suku kata!
+            Pilih di mana kamu ingin memotong kata menjadi suku kata!
           </Text>
           <Text style={styles.instructionSub}>
-            Kata: <Text style={{ fontFamily: fonts.black, color: colors.ink }}>{wordItem.word.toUpperCase()}</Text> ({wordItem.syllables.length} Suku Kata)
+            Target: <Text style={{ fontFamily: fonts.black, color: colors.ink }}>{wordItem.word.toUpperCase()}</Text> ({wordItem.syllables.length} Suku Kata: {wordItem.syllables.length - 1} Kali Potong)
           </Text>
+          {hintMessage ? (
+            <View style={styles.hintBadge}>
+              <Text style={styles.hintText}>{hintMessage}</Text>
+            </View>
+          ) : null}
         </View>
 
-        {/* Interactive Syllable Slicing Stage */}
-        <Animated.View style={[styles.stageRow, animatedSliceStyle]}>
-          {wordItem.syllables.map((syl, i) => {
-            const isLast = i === wordItem.syllables.length - 1;
-            const isCut = cutSyllables.includes(i);
+        {/* Word Puzzle Slicing Area */}
+        <View style={styles.puzzleArea}>
+          <View style={styles.letterStrip}>
+            {letters.map((char, index) => {
+              const gapIndex = index + 1; // Gap after this letter
+              const isLastLetter = index === letters.length - 1;
+              const isCutDone = successfulCuts.includes(gapIndex);
+              const isCutWrong = wrongCutIndex === gapIndex;
+              const isSuggested = session.wrongThisRound >= 2 && correctCutIndices.includes(gapIndex);
 
-            return (
-              <React.Fragment key={i}>
-                {/* Balok Suku Kata */}
-                <View
-                  style={[
-                    styles.syllableBlock,
-                    isCut && styles.syllableBlockCut,
-                    raised(isCut ? '#15803D' : colors.line),
-                  ]}
-                >
-                  <Text style={[styles.syllableText, isCut && { color: '#166534' }]}>
-                    {syl.toUpperCase()}
-                  </Text>
-                  <Text style={styles.sylOrderBadge}>Bagian {i + 1}</Text>
-                </View>
-
-                {/* Tombol Gunting Lebar & Mudah Ditekan */}
-                {!isLast && (
-                  <View style={styles.cutterContainer}>
-                    <Pressable
-                      onPress={() => handleCutGap(i)}
-                      hitSlop={{ top: 20, bottom: 20, left: 15, right: 15 }}
-                      style={[
-                        styles.cutterBtn,
-                        isCut && styles.cutterBtnDone,
-                        raised(isCut ? '#16A34A' : colors.coralDark),
-                      ]}
-                    >
-                      <Text style={styles.cutterIcon}>{isCut ? '✨' : '✂️'}</Text>
-                    </Pressable>
-                    <Text style={styles.cutterHint}>{isCut ? 'TERPOTONG' : 'POTONG'}</Text>
+              return (
+                <View key={index} style={styles.letterSegment}>
+                  {/* Letter Block Tile */}
+                  <View
+                    style={[
+                      styles.letterTile,
+                      raised(colors.sunnyDark),
+                      isCutDone && styles.letterTileSliced,
+                    ]}
+                  >
+                    <Text style={styles.letterChar}>{char}</Text>
                   </View>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </Animated.View>
+
+                  {/* Scissor Cutter Button between adjacent letters */}
+                  {!isLastLetter && (
+                    <Animated.View style={[styles.cutterSlot, isCutWrong && wobbleStyle]}>
+                      {isCutDone ? (
+                        <View style={styles.slicedDivider}>
+                          <Text style={styles.slicedIcon}>✨✂️✨</Text>
+                          <View style={styles.cutLine} />
+                        </View>
+                      ) : (
+                        <Pressable
+                          onPress={() => handleCutGap(gapIndex)}
+                          hitSlop={{ top: 20, bottom: 20, left: 12, right: 12 }}
+                          style={[
+                            styles.scissorBtn,
+                            isCutWrong && styles.scissorBtnWrong,
+                            isSuggested && styles.scissorBtnSuggested,
+                            raised(isCutWrong ? '#B91C1C' : isSuggested ? '#F59E0B' : colors.line),
+                          ]}
+                        >
+                          <Text style={[styles.scissorEmoji, isCutWrong && { opacity: 0.8 }]}>
+                            ✂️
+                          </Text>
+                        </Pressable>
+                      )}
+                    </Animated.View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Sliced Syllables Progress Badge */}
+          <View style={styles.progressRow}>
+            <Text style={styles.progressLabel}>
+              Terpotong: {successfulCuts.length} / {totalCutsNeeded} bagian
+            </Text>
+            <View style={styles.dotsRow}>
+              {Array.from({ length: totalCutsNeeded }).map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.progressDot,
+                    i < successfulCuts.length && styles.progressDotActive,
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+        </View>
 
         {/* Audio Helper Controls */}
         <View style={styles.audioControls}>
           <BigButton
-            label="🐢 Dengar Pelan-Pelan (Per Suku Kata)"
+            label="🐢 Dengar Suku Kata (Pelan-Pelan)"
             color={colors.peach}
             edge={colors.peachDark}
             onPress={() => {
@@ -188,7 +267,7 @@ const styles = StyleSheet.create({
   topCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: radius.xl,
-    padding: 18,
+    padding: 16,
     alignItems: 'center',
     width: '100%',
     borderWidth: 2,
@@ -196,83 +275,145 @@ const styles = StyleSheet.create({
     borderBottomWidth: 5,
     gap: 4,
   },
-  wordEmoji: { fontSize: 72 },
+  wordEmoji: { fontSize: 68 },
   instructionTitle: {
-    fontFamily: fonts.black,
-    fontSize: 16,
+    fontFamily: fonts.heavy,
+    fontSize: 15,
     color: colors.ink,
     textAlign: 'center',
-    marginTop: 4,
   },
   instructionSub: {
-    fontFamily: fonts.regular,
+    fontFamily: fonts.bold,
     fontSize: 14,
     color: colors.inkSoft,
     textAlign: 'center',
+    marginTop: 2,
   },
-  stageRow: {
+  hintBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
+  hintText: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: '#92400E',
+    textAlign: 'center',
+  },
+  puzzleArea: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: 12,
+  },
+  letterStrip: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    marginVertical: 18,
+    rowGap: 16,
   },
-  syllableBlock: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: radius.lg,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
+  letterSegment: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  letterTile: {
+    width: 48,
+    height: 64,
+    backgroundColor: '#FEF08A',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#EAB308',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2.5,
-    borderColor: '#FDE68A',
-    minWidth: 95,
   },
-  syllableBlockCut: {
+  letterTileSliced: {
     backgroundColor: '#DCFCE7',
-    borderColor: '#86EFAC',
+    borderColor: '#16A34A',
   },
-  syllableText: {
+  letterChar: {
     fontFamily: fonts.black,
-    fontSize: 34,
-    color: '#0F172A',
-    letterSpacing: 2,
+    fontSize: 28,
+    color: colors.ink,
   },
-  sylOrderBadge: {
-    fontFamily: fonts.bold,
-    fontSize: 11,
-    color: colors.inkSoft,
-    marginTop: 4,
+  cutterSlot: {
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cutterContainer: {
+  scissorBtn: {
+    width: 44,
+    height: 48,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scissorBtnWrong: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#EF4444',
+  },
+  scissorBtnSuggested: {
+    backgroundColor: '#FEF9C3',
+    borderColor: '#F59E0B',
+    borderWidth: 2.5,
+  },
+  scissorEmoji: {
+    fontSize: 22,
+  },
+  slicedDivider: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
-    gap: 4,
   },
-  cutterBtn: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.coral,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+  slicedIcon: {
+    fontSize: 13,
   },
-  cutterBtnDone: {
+  cutLine: {
+    width: 2,
+    height: 36,
     backgroundColor: '#22C55E',
+    borderStyle: 'dashed',
+    borderRadius: 1,
   },
-  cutterIcon: {
-    fontSize: 28,
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 20,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  cutterHint: {
-    fontFamily: fonts.black,
-    fontSize: 10,
-    color: colors.coral,
+  progressLabel: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.inkSoft,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  progressDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#CBD5E1',
+  },
+  progressDotActive: {
+    backgroundColor: '#16A34A',
   },
   audioControls: {
     width: '100%',
-    gap: 8,
+    gap: 10,
   },
 });

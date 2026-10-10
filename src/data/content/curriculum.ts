@@ -21,7 +21,7 @@ export const WORDS: WordItem[] = [
   W(3, '⚽', 'BO', 'LA'),
   W(3, '🧹', 'SA', 'PU'),
   W(3, '🐴', 'KU', 'DA'),
-  W(3, '🪑', 'ME', 'JA'),
+  W(3, '🛋️', 'SO', 'FA'),
   W(3, '🦶', 'KA', 'KI'),
   W(3, '👀', 'MA', 'TA'),
   W(3, '🧢', 'TO', 'PI'),
@@ -42,7 +42,7 @@ export const WORDS: WordItem[] = [
   W(3, '🖐️', 'JA', 'RI'),
   W(3, '🦌', 'RU', 'SA'),
   W(3, '🌍', 'BU', 'MI'),
-  W(3, '🧂', 'GU', 'LA'),
+  W(3, '🍓', 'BE', 'RI'),
   W(3, '🍯', 'MA', 'DU'),
   W(3, '🪵', 'KA', 'YU'),
   W(3, '🥛', 'SU', 'SU'),
@@ -90,9 +90,8 @@ export const WORDS: WordItem[] = [
   W(4, '🥇', 'E', 'MAS'),
   W(4, '🦐', 'U', 'DANG'),
   W(4, '🐰', 'KE', 'LIN', 'CI'),
-  W(4, '🏊', 'KO', 'LAM'),
-  W(4, '☁️', 'KA', 'BUT'),
-  W(4, '☁️', 'KA', 'PAS'),
+  W(4, '🪑', 'KUR', 'SI'),
+  W(4, '🎒', 'RAN', 'SEL'),
 
   // ==========================================
   // Level 5 — NG, NY, Diftong AU/AI/OI (Minimal 35 Soal)

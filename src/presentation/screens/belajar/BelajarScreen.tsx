@@ -62,57 +62,59 @@ export function BelajarScreen() {
   };
 
   const renderLevelSelector = () => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.levelRow}
-    >
-      {levelMeta.map((lvl) => {
-        const isSelected = activeLevel === lvl.level;
-        const unlocked = isLevelUnlocked(lvl.level);
-        return (
-          <Pressable
-            key={lvl.level}
-            onPress={() => {
-              if (!unlocked) {
-                container.sound.sfx('boop');
-                setCiciMood('hint');
-                setCiciMsg(
-                  `Level ${lvl.level} masih terkunci 🔒! Selesaikan kuis dikte Level ${lvl.level - 1} dengan minimal 2 bintang (80%) dulu ya! ⭐`
-                );
-                return;
-              }
-              setActiveLevel(lvl.level);
-              setCiciMood('talk');
-              setCiciMsg(`Ayo belajar Level ${lvl.level}: ${lvl.title}! 🚀`);
-              container.sound.sfx('pop');
-            }}
-            style={[
-              styles.levelTab,
-              {
-                backgroundColor: isSelected
-                  ? lvl.color
-                  : unlocked
-                  ? '#FFFFFF'
-                  : '#E8E4D9',
-                opacity: unlocked ? 1 : 0.7,
-              },
-              raised(isSelected ? colors.sunnyDark : colors.line),
-            ]}
-          >
-            <Text style={styles.levelEmoji}>{unlocked ? lvl.emoji : '🔒'}</Text>
-            <Text
+    <View style={{ height: 72 }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.levelRow}
+      >
+        {levelMeta.map((lvl) => {
+          const isSelected = activeLevel === lvl.level;
+          const unlocked = isLevelUnlocked(lvl.level);
+          return (
+            <Pressable
+              key={lvl.level}
+              onPress={() => {
+                if (!unlocked) {
+                  container.sound.sfx('boop');
+                  setCiciMood('hint');
+                  setCiciMsg(
+                    `Level ${lvl.level} masih terkunci 🔒! Selesaikan kuis dikte Level ${lvl.level - 1} dengan minimal 2 bintang (80%) dulu ya! ⭐`
+                  );
+                  return;
+                }
+                setActiveLevel(lvl.level);
+                setCiciMood('talk');
+                setCiciMsg(`Ayo belajar Level ${lvl.level}: ${lvl.title}! 🚀`);
+                container.sound.sfx('pop');
+              }}
               style={[
-                styles.levelText,
-                { color: isSelected ? colors.ink : unlocked ? colors.inkSoft : '#9E9E9E' },
+                styles.levelTab,
+                {
+                  backgroundColor: isSelected
+                    ? lvl.color
+                    : unlocked
+                    ? '#FFFFFF'
+                    : '#E8E4D9',
+                  opacity: unlocked ? 1 : 0.7,
+                },
+                raised(isSelected ? colors.sunnyDark : colors.line),
               ]}
             >
-              L{lvl.level}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+              <Text style={styles.levelEmoji}>{unlocked ? lvl.emoji : '🔒'}</Text>
+              <Text
+                style={[
+                  styles.levelText,
+                  { color: isSelected ? colors.ink : unlocked ? colors.inkSoft : '#9E9E9E' },
+                ]}
+              >
+                L{lvl.level}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 
   const renderLevel1Alphabet = () => (
@@ -427,17 +429,18 @@ export function BelajarScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  levelRow: { paddingHorizontal: 16, paddingVertical: 8, gap: 10 },
+  levelRow: { paddingHorizontal: 16, paddingVertical: 6, gap: 10 },
   levelTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 64,
+    minWidth: 70,
+    height: 56,
   },
-  levelEmoji: { fontSize: 20 },
-  levelText: { fontFamily: fonts.black, fontSize: 14, marginTop: 2 },
+  levelEmoji: { fontSize: 22 },
+  levelText: { fontFamily: fonts.black, fontSize: 13, marginTop: 2 },
   letterStrip: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   miniLetterBubble: {
     width: 54,

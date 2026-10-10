@@ -15,11 +15,13 @@ interface Props {
   speakText?: string;
   /** Teks-teks lain yang dianggap benar (mis. nama huruf). */
   accepted?: string[];
+  /** Tampilkan tombol Dengar Cici di samping mic (default false agar tidak duplikat dengan pemutar suara utama). */
+  showHearButton?: boolean;
   onResult?: (r: VoiceResult) => void;
 }
 
 /** Tombol mikrofon: anak menirukan Cici, dinilai 1–3 bintang. */
-export function VoiceMicButton({ target, speakText, accepted, onResult }: Props) {
+export function VoiceMicButton({ target, speakText, accepted, showHearButton = false, onResult }: Props) {
   const saveVoice = useAppStore((s) => s.saveVoice);
   const [listening, setListening] = useState(false);
   const [result, setResult] = useState<VoiceResult | null>(null);
@@ -74,13 +76,15 @@ export function VoiceMicButton({ target, speakText, accepted, onResult }: Props)
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
-        <BigButton
-          label="🔊 Dengar Cici"
-          color={colors.mint}
-          edge={colors.mintDark}
-          small
-          onPress={() => container.sound.hear(speakText ?? target.toLowerCase())}
-        />
+        {showHearButton && (
+          <BigButton
+            label="🔊 Dengar Cici"
+            color={colors.mint}
+            edge={colors.mintDark}
+            small
+            onPress={() => container.sound.hear(speakText ?? target.toLowerCase())}
+          />
+        )}
         <Animated.View style={anim}>
           <BigButton
             label={listening ? '🔴 Mendengarkan…' : '🎤 Ucapkan'}
