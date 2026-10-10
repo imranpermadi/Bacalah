@@ -48,11 +48,6 @@ export function SusunKata({ onExit }: { onExit: () => void }) {
     setScrambled(shuffled);
     setPlaced([]);
     setWobbleToken(0);
-
-    const t = setTimeout(() => {
-      container.sound.speak(word.word.toLowerCase());
-    }, 400);
-    return () => clearTimeout(t);
   }, [session.round, session.finished]);
 
   const hearWord = () => {
@@ -109,11 +104,12 @@ export function SusunKata({ onExit }: { onExit: () => void }) {
       onExit={onExit}
     >
       <View style={styles.container}>
-        {/* Clue Header: Gambar & Suara */}
+        {/* Clue Header: Gambar Saja (Tanpa Bocoran Kata) */}
         <View style={styles.clueCard}>
           <Text style={styles.clueEmoji}>{currentWord.emoji}</Text>
+          <Text style={styles.clueTextHint}>Tebak gambar di atas ({currentWord.word.length} Huruf)</Text>
           <BigButton
-            label={`🔊 Dengarkan "${currentWord.word}"`}
+            label="🔊 Petunjuk Suara Cici"
             small
             color={colors.sunny}
             edge={colors.sunnyDark}
@@ -204,6 +200,12 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.line,
   },
   clueEmoji: { fontSize: 64 },
+  clueTextHint: {
+    fontFamily: fonts.bold,
+    fontSize: 14,
+    color: colors.inkSoft,
+    textAlign: 'center',
+  },
   slotRow: {
     flexDirection: 'row',
     gap: 8,

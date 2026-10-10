@@ -64,10 +64,19 @@ export function PengetahuanAlamModal({
           >
             <Text style={styles.backBtnText}>← {activeFact ? 'Daftar Ensiklopedia' : 'Tutup'}</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
             {activeFact ? activeFact.title : '🌍 Ensiklopedia Sains & Alam'}
           </Text>
-          <View style={{ width: 60 }} />
+          <Pressable
+            onPress={() => {
+              setActiveFact(null);
+              onClose();
+              container.sound.sfx('pop');
+            }}
+            style={styles.homeBtn}
+          >
+            <Text style={styles.homeBtnText}>🏠 Beranda</Text>
+          </Pressable>
         </View>
 
         {!activeFact ? (
@@ -188,12 +197,23 @@ export function PengetahuanAlamModal({
               ))}
             </View>
 
-            <BigButton
-              label="← Kembali ke Daftar Sains"
-              color={colors.mint}
-              edge={colors.mintDark}
-              onPress={() => setActiveFact(null)}
-            />
+            <View style={{ gap: 10, width: '100%', marginTop: 8 }}>
+              <BigButton
+                label="← Kembali ke Daftar Sains"
+                color={colors.mint}
+                edge={colors.mintDark}
+                onPress={() => setActiveFact(null)}
+              />
+              <BigButton
+                label="🏠 Kembali ke Beranda"
+                color={colors.sky}
+                edge={colors.skyDark}
+                onPress={() => {
+                  setActiveFact(null);
+                  onClose();
+                }}
+              />
+            </View>
           </ScrollView>
         )}
       </SafeAreaView>
@@ -220,7 +240,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
   backBtnText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
-  headerTitle: { fontFamily: fonts.black, fontSize: 16, color: colors.ink },
+  headerTitle: {
+    fontFamily: fonts.black,
+    fontSize: 16,
+    color: colors.ink,
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 8,
+  },
+  homeBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  homeBtnText: {
+    fontFamily: fonts.black,
+    fontSize: 12,
+    color: colors.ink,
+  },
   listContainer: { padding: 16, gap: 14 },
   bannerBox: {
     backgroundColor: '#ECFDF5',

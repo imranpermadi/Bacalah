@@ -27,12 +27,12 @@ export interface VoiceResult {
   stars: 1 | 2 | 3;
 }
 
-const normalize = (s: string) =>
+const clean = (s: string) =>
   s
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '');
+    .trim();
 
 export function levenshtein(a: string, b: string): number {
   const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...new Array(b.length).fill(0)]);
@@ -44,13 +44,55 @@ export function levenshtein(a: string, b: string): number {
 }
 
 export function similarity(target: string, heard: string): number {
-  const a = normalize(target);
-  const b = normalize(heard);
-  if (!a || !b) return 0;
-  return 1 - levenshtein(a, b) / Math.max(a.length, b.length);
+  const tClean = clean(target);
+  const hClean = clean(heard);
+  if (!tClean || !hClean) return 0;
+
+  const tNorm = tClean.replace(/[^a-z0-9]/g, '');
+  const hNorm = hClean.replace(/[^a-z0-9]/g, '');
+
+  if (!tNorm || !hNorm) return 0;
+  if (tNorm === hNorm) return 1.0;
+
+  // 1. Direct containment: e.g. heard has target as whole word or substring
+  if (hNorm.includes(tNorm) || tNorm.includes(hNorm)) {
+    return 0.95;
+  }
+
+  // 2. Tokenized word matching: check every word in heard
+  const words = hClean.split(/[\s,.\-!?;:"'()]+/).filter(Boolean);
+  let bestTokenSim = 0;
+  for (const w of words) {
+    const wNorm = w.replace(/[^a-z0-9]/g, '');
+    if (!wNorm) continue;
+    if (wNorm === tNorm) return 1.0;
+    if (wNorm.includes(tNorm) || tNorm.includes(wNorm)) {
+      bestTokenSim = Math.max(bestTokenSim, 0.92);
+      continue;
+    }
+    const dist = levenshtein(tNorm, wNorm);
+    const maxLen = Math.max(tNorm.length, wNorm.length);
+    const score = 1 - dist / maxLen;
+    // For young children, 1 typo/mispronunciation should still give 3 stars
+    if (dist <= 1 && maxLen <= 5) {
+      bestTokenSim = Math.max(bestTokenSim, 0.88);
+    } else {
+      bestTokenSim = Math.max(bestTokenSim, score);
+    }
+  }
+
+  if (bestTokenSim >= 0.65) {
+    return Math.max(bestTokenSim, 0.85);
+  }
+
+  // 3. Fallback to full string Levenshtein
+  const fullDist = levenshtein(tNorm, hNorm);
+  const fullSim = 1 - fullDist / Math.max(tNorm.length, hNorm.length);
+
+  return Math.max(bestTokenSim, fullSim);
 }
 
-export const starsFor = (sim: number): 1 | 2 | 3 => (sim >= 0.75 ? 3 : sim >= 0.45 ? 2 : 1);
+export const starsFor = (sim: number): 1 | 2 | 3 => (sim >= 0.60 ? 3 : sim >= 0.30 ? 2 : 1);
 
 export class VoiceEvaluatorService {
   /**
@@ -85,6 +127,7 @@ export class VoiceEvaluatorService {
   }
 
   /** Nilai teks yang terdengar terhadap target (tanpa mikrofon; berguna untuk uji). */
+  /** Nilai teks yang terdengar terhadap target (tanpa mikrofon; berguna untuk uji). */
   evaluate(target: string, alternatives: string[]): VoiceResult {
     if (!alternatives || alternatives.length === 0) {
       return { transcript: '', similarity: 0, stars: 1 };
@@ -97,12 +140,29 @@ export class VoiceEvaluatorService {
     return { transcript: best.t, similarity: best.s, stars: starsFor(best.s) };
   }
 
+  /** Nilai alternatif suara terhadap seluruh variasi kata yang diterima (target + accepted). */
+  evaluateCandidates(candidates: string[], alternatives: string[]): VoiceResult {
+    if (!alternatives || alternatives.length === 0) {
+      return { transcript: '', similarity: 0, stars: 1 };
+    }
+    let bestResult: VoiceResult = { transcript: alternatives[0], similarity: 0, stars: 1 };
+    for (const cand of candidates) {
+      const scored = this.evaluate(cand, alternatives);
+      if (scored.similarity > bestResult.similarity) {
+        bestResult = scored;
+      }
+    }
+    return bestResult;
+  }
+
   /** Dengarkan satu ucapan dan nilai. */
   async listenAndScore(target: string, accepted: string[] = [target]): Promise<VoiceResult> {
     const hasPerm = await this.ensurePermissions();
     if (!hasPerm) {
       throw new Error('permission');
     }
+
+    const validCandidates = Array.from(new Set([target, ...accepted]));
 
     // Jika Speech Recognition native tersedia di OS:
     if (mod) {
@@ -142,21 +202,15 @@ export class VoiceEvaluatorService {
 
                 if (e.isFinal) {
                   finish(() => {
-                    let bestResult: VoiceResult = { transcript: '', similarity: 0, stars: 1 };
-                    for (const candidate of accepted) {
-                      const scored = this.evaluate(candidate, alternatives);
-                      if (scored.similarity > bestResult.similarity) {
-                        bestResult = scored;
-                      }
-                    }
-                    resolve(bestResult.similarity > 0 ? bestResult : this.evaluate(target, alternatives));
+                    const bestResult = this.evaluateCandidates(validCandidates, alternatives);
+                    resolve(bestResult.similarity > 0 ? bestResult : this.evaluateCandidates(validCandidates, [target]));
                   });
                 }
               }),
               mod!.addListener('error', (e: any) => {
                 const errCode = e?.error;
                 if (errCode === 'no-speech') {
-                  finish(() => resolve(this.evaluate(target, [])));
+                  finish(() => resolve(this.evaluateCandidates(validCandidates, [])));
                 } else {
                   // Fallback mode jika speech engine android terkendala jaringan/offline
                   finish(() => {
@@ -171,7 +225,7 @@ export class VoiceEvaluatorService {
               mod!.addListener('end', () => {
                 finish(() => {
                   if (alternatives.length > 0) {
-                    resolve(this.evaluate(target, alternatives));
+                    resolve(this.evaluateCandidates(validCandidates, alternatives));
                   } else {
                     resolve({
                       transcript: target,
@@ -207,7 +261,7 @@ export class VoiceEvaluatorService {
                 mod!.stop();
               } catch {}
               if (alternatives.length > 0) {
-                resolve(this.evaluate(target, alternatives));
+                resolve(this.evaluateCandidates(validCandidates, alternatives));
               } else {
                 resolve({
                   transcript: target,

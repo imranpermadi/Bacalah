@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { container } from '../../../core/di/container';
 import { colors, fonts, radius, raised, spacing } from '../../../core/theme';
 import { ALPHABET, letterInfo } from '../../../data/content/alphabet';
@@ -24,6 +25,7 @@ import { useAppStore } from '../../stores/useAppStore';
 const { width } = Dimensions.get('window');
 
 export function ProfilScreen() {
+  const navigation = useNavigation<any>();
   const profile = useAppStore((s) => s.profile);
   const stats = useAppStore((s) => s.stats);
   const levels = useAppStore((s) => s.levels);
@@ -88,7 +90,20 @@ export function ProfilScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenTitle sub="Rapor Penguasaan Bahasa, Leveling & Cloud Sync">
+      <ScreenTitle
+        sub="Rapor Penguasaan Bahasa, Leveling & Cloud Sync"
+        rightAction={
+          <Pressable
+            onPress={() => {
+              container.sound.sfx('pop');
+              navigation.navigate('Belajar');
+            }}
+            style={styles.homeBtn}
+          >
+            <Text style={styles.homeBtnText}>🏠 Beranda</Text>
+          </Pressable>
+        }
+      >
         Profil & Rapor Belajar 👤
       </ScreenTitle>
 
@@ -625,6 +640,19 @@ export function ProfilScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  homeBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  homeBtnText: {
+    fontFamily: fonts.black,
+    fontSize: 13,
+    color: colors.ink,
+  },
   scroll: { paddingHorizontal: 16, paddingBottom: 100, gap: 16 },
   profileHeader: {
     backgroundColor: '#FFFFFF',

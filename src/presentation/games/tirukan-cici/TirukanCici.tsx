@@ -18,14 +18,37 @@ function makeItem(round: number): Item {
   if (kind === 0) {
     const l = AlphabetMasteryEngine.weightedPick(LETTERS, (x) => weights[x] ?? 1);
     const info = letterInfo(l);
-    return { target: info.speak, speak: info.speak, accepted: [info.speak, l.toLowerCase()], label: l, emoji: info.emoji };
+    return {
+      target: info.speak,
+      speak: info.speak,
+      accepted: [
+        info.speak,
+        l.toLowerCase(),
+        l.toUpperCase(),
+        `huruf ${info.speak}`,
+        `huruf ${l.toLowerCase()}`,
+      ],
+      label: l,
+      emoji: info.emoji,
+    };
   }
   if (kind === 1) {
     const s = OPEN_SYLLABLES[Math.floor(Math.random() * OPEN_SYLLABLES.length)];
-    return { target: s.toLowerCase(), speak: s.toLowerCase(), accepted: [s.toLowerCase()], label: s };
+    return {
+      target: s.toLowerCase(),
+      speak: s.toLowerCase(),
+      accepted: [s.toLowerCase(), s.toUpperCase()],
+      label: s,
+    };
   }
   const w = WORDS[Math.floor(Math.random() * WORDS.length)];
-  return { target: w.word.toLowerCase(), speak: w.word.toLowerCase(), accepted: [w.word.toLowerCase()], label: w.word, emoji: w.emoji };
+  return {
+    target: w.word.toLowerCase(),
+    speak: w.word.toLowerCase(),
+    accepted: [w.word.toLowerCase(), w.word.toUpperCase()],
+    label: w.word,
+    emoji: w.emoji,
+  };
 }
 
 /** 🎤 Tirukan Cici (Voice Challenge): bintang 1–3 berdasarkan kemiripan lafal. */

@@ -117,10 +117,19 @@ export function CeritaMendidikModal({
           >
             <Text style={styles.backBtnText}>← {selectedStory ? 'Daftar Cerita' : 'Tutup'}</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
             {selectedStory ? selectedStory.title : '📖 20 Cerita Mendidik'}
           </Text>
-          <View style={{ width: 60 }} />
+          <Pressable
+            onPress={() => {
+              setSelectedStory(null);
+              onClose();
+              container.sound.sfx('pop');
+            }}
+            style={styles.homeBtn}
+          >
+            <Text style={styles.homeBtnText}>🏠 Beranda</Text>
+          </Pressable>
         </View>
 
         {/* Story List View */}
@@ -178,12 +187,23 @@ export function CeritaMendidikModal({
               <Text style={styles.moralHeader}>💡 Pesan Budi Pekerti:</Text>
               <Text style={styles.moralContent}>{selectedStory.moral}</Text>
             </View>
-            <BigButton
-              label="📖 Pilih Cerita Lainnya"
-              color={colors.mint}
-              edge={colors.mintDark}
-              onPress={() => setSelectedStory(null)}
-            />
+            <View style={{ gap: 10, width: '100%', marginTop: 8 }}>
+              <BigButton
+                label="📖 Pilih Cerita Lainnya"
+                color={colors.mint}
+                edge={colors.mintDark}
+                onPress={() => setSelectedStory(null)}
+              />
+              <BigButton
+                label="🏠 Kembali ke Beranda"
+                color={colors.sky}
+                edge={colors.skyDark}
+                onPress={() => {
+                  setSelectedStory(null);
+                  onClose();
+                }}
+              />
+            </View>
           </View>
         ) : (
           /* Story Reader View */
@@ -316,6 +336,22 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: fonts.black,
     fontSize: 17,
+    color: colors.ink,
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 8,
+  },
+  homeBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  homeBtnText: {
+    fontFamily: fonts.black,
+    fontSize: 12,
     color: colors.ink,
   },
   listContainer: { padding: 16, gap: 16 },

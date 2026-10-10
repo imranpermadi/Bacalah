@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { container } from '../../core/di/container';
 import { colors, fonts, radius } from '../../core/theme';
 import { encouragement, randomHint, randomPraise } from '../../data/content/feedback';
@@ -140,23 +141,43 @@ export function GameShell({
   onExit: () => void;
   children: React.ReactNode;
 }) {
+  const navigation = useNavigation<any>();
   useEffect(() => () => container.sound.stop(), []);
+
+  const handleBackToHome = () => {
+    container.sound.sfx('pop');
+    onExit();
+    try {
+      navigation.navigate('Belajar');
+    } catch {}
+  };
 
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: colors.bg }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: color }]}>
-        <BigButton label="⬅ Keluar" small color="#FFFFFF" edge="#DDD" onPress={onExit} />
-        <View style={{ alignItems: 'center' }}>
-          <Text style={styles.title}>
+        <View style={styles.headerLeft}>
+          <Pressable onPress={handleBackToHome} style={styles.homeBtn}>
+            <Text style={styles.homeBtnText}>🏠 Beranda</Text>
+          </Pressable>
+          <Pressable onPress={onExit} style={styles.exitBtn}>
+            <Text style={styles.exitBtnText}>🎮 Games</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.headerCenter}>
+          <Text style={styles.title} numberOfLines={1}>
             {emoji} {title}
           </Text>
           {session.hasResumed ? (
-            <Text style={styles.resumeBadge}>▶ Lanjut Ronde {session.round + 1}</Text>
+            <Text style={styles.resumeBadge}>▶ Ronde {session.round + 1}</Text>
           ) : null}
         </View>
-        <Text style={styles.counter}>
-          {Math.min(session.round + 1, session.total)}/{session.total}
-        </Text>
+
+        <View style={styles.headerRight}>
+          <Text style={styles.counter}>
+            {Math.min(session.round + 1, session.total)}/{session.total}
+          </Text>
+        </View>
       </View>
 
       {session.finished ? (
@@ -181,7 +202,13 @@ export function GameShell({
               edge={colors.mintDark}
               onPress={session.restart}
             />
-            <BigButton label="🏠 Pilih Game Lain" onPress={onExit} />
+            <BigButton
+              label="🏠 Kembali ke Beranda"
+              color={colors.sky}
+              edge={colors.skyDark}
+              onPress={handleBackToHome}
+            />
+            <BigButton label="🎮 Pilih Game Lain" small onPress={onExit} />
           </View>
           <Celebration visible />
         </View>
@@ -203,12 +230,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 10,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  headerRight: {
+    minWidth: 46,
+    alignItems: 'flex-end',
+  },
+  homeBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  homeBtnText: {
+    fontFamily: fonts.black,
+    fontSize: 12,
+    color: colors.ink,
+  },
+  exitBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: radius.md,
+  },
+  exitBtnText: {
+    fontFamily: fonts.heavy,
+    fontSize: 12,
+    color: colors.inkSoft,
   },
   title: {
     fontFamily: fonts.black,
-    fontSize: 18,
+    fontSize: 17,
     color: colors.ink,
     textAlign: 'center',
   },
@@ -225,9 +290,8 @@ const styles = StyleSheet.create({
   },
   counter: {
     fontFamily: fonts.black,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.ink,
-    minWidth: 54,
     textAlign: 'right',
   },
   finish: {

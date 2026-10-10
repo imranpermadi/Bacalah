@@ -71,10 +71,23 @@ export function Stars({ count, max = 3, size = 36 }: { count: number; max?: numb
   );
 }
 
-export function ScreenTitle({ children, sub }: { children: string; sub?: string }) {
+export function ScreenTitle({
+  children,
+  sub,
+  rightAction,
+}: {
+  children: string;
+  sub?: string;
+  rightAction?: React.ReactNode;
+}) {
   return (
     <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
-      <Text style={styles.title}>{children}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={[styles.title, rightAction ? { flex: 1 } : null]} numberOfLines={1}>
+          {children}
+        </Text>
+        {rightAction ? <View style={{ marginLeft: 8 }}>{rightAction}</View> : null}
+      </View>
       {sub ? <Text style={styles.sub}>{sub}</Text> : null}
     </View>
   );

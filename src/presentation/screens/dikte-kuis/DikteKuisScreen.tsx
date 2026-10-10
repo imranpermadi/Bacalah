@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
 import { colors, fonts, levelMeta, radius, raised, spacing } from '../../../core/theme';
@@ -28,6 +29,7 @@ const SESSION_SIZE = 30; // 30 varian soal per level
 const TIME_LIMIT_SECONDS = 20;
 
 export function DikteKuisScreen() {
+  const navigation = useNavigation<any>();
   const profile = useAppStore((s) => s.profile);
   const levels = useAppStore((s) => s.levels);
   const weights = useAppStore((s) => s.weights);
@@ -313,7 +315,20 @@ export function DikteKuisScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenTitle sub="Dengarkan Suara Cici, Lalu Susun Balok atau Selesaikan Kilat!">
+      <ScreenTitle
+        sub="Dengarkan Suara Cici, Lalu Susun Balok atau Selesaikan Kilat!"
+        rightAction={
+          <Pressable
+            onPress={() => {
+              container.sound.sfx('pop');
+              navigation.navigate('Belajar');
+            }}
+            style={styles.homeBtn}
+          >
+            <Text style={styles.homeBtnText}>🏠 Beranda</Text>
+          </Pressable>
+        }
+      >
         Dikte Cerdas Cici 📝
       </ScreenTitle>
 
@@ -449,6 +464,13 @@ export function DikteKuisScreen() {
               edge={colors.sunnyDark}
               onPress={() => loadExercises(activeLevel)}
             />
+
+            <BigButton
+              label="🏠 Kembali ke Beranda"
+              color={colors.sky}
+              edge={colors.skyDark}
+              onPress={() => navigation.navigate('Belajar')}
+            />
           </View>
         </View>
       ) : (
@@ -572,6 +594,19 @@ export function DikteKuisScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  homeBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  homeBtnText: {
+    fontFamily: fonts.black,
+    fontSize: 13,
+    color: colors.ink,
+  },
   controlRow: { paddingHorizontal: 16, marginBottom: 6 },
   modeSwitch: {
     flexDirection: 'row',

@@ -170,10 +170,19 @@ export function KomikInteraktifModal({
           >
             <Text style={styles.backBtnText}>← {selectedComic ? 'Pilih Komik' : 'Tutup'}</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
             {selectedComic ? selectedComic.title : '💬 20 Komik Suara Interaktif'}
           </Text>
-          <View style={{ width: 60 }} />
+          <Pressable
+            onPress={() => {
+              setSelectedComic(null);
+              onClose();
+              container.sound.sfx('pop');
+            }}
+            style={styles.homeBtn}
+          >
+            <Text style={styles.homeBtnText}>🏠 Beranda</Text>
+          </Pressable>
         </View>
 
         {!selectedComic ? (
@@ -220,15 +229,26 @@ export function KomikInteraktifModal({
             <Text style={styles.completeDesc}>
               Hebat sekali! Kamu sudah melatih membaca percakapan dua arah dengan lafal yang jelas dan percaya diri!
             </Text>
-            <BigButton
-              label="📚 Baca Komik Lainnya"
-              color={selectedComic.accentColor}
-              edge={colors.coralDark}
-              onPress={() => {
-                setSelectedComic(null);
-                container.sound.sfx('pop');
-              }}
-            />
+            <View style={{ gap: 10, width: '100%', marginTop: 8 }}>
+              <BigButton
+                label="📚 Baca Komik Lainnya"
+                color={selectedComic.accentColor}
+                edge={colors.coralDark}
+                onPress={() => {
+                  setSelectedComic(null);
+                  container.sound.sfx('pop');
+                }}
+              />
+              <BigButton
+                label="🏠 Kembali ke Beranda"
+                color={colors.sky}
+                edge={colors.skyDark}
+                onPress={() => {
+                  setSelectedComic(null);
+                  onClose();
+                }}
+              />
+            </View>
           </View>
         ) : currentPanel ? (
           /* True Comic Panel Reading Canvas */
@@ -387,6 +407,22 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: fonts.black,
     fontSize: 16,
+    color: colors.ink,
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 8,
+  },
+  homeBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  homeBtnText: {
+    fontFamily: fonts.black,
+    fontSize: 12,
     color: colors.ink,
   },
   listContainer: { padding: 16, gap: 14 },

@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { colors, fonts, radius, raised, spacing } from '../../../core/theme';
 import { container } from '../../../core/di/container';
 import { BigButton, ScreenTitle } from '../../components/common/ui';
@@ -15,6 +16,7 @@ import { MascotCici } from '../../components/play/MascotCici';
 import { GameDef, GAMES } from '../../games/registry';
 
 export function GamesScreen() {
+  const navigation = useNavigation<any>();
   const [activeGame, setActiveGame] = useState<GameDef | null>(null);
 
   const handleLaunchGame = (game: GameDef) => {
@@ -33,7 +35,20 @@ export function GamesScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenTitle sub="11 Mini Games Seru dengan 30 Soal & Fitur Lanjut Permainan!">
+      <ScreenTitle
+        sub="11 Mini Games Seru dengan 30 Soal & Fitur Lanjut Permainan!"
+        rightAction={
+          <Pressable
+            onPress={() => {
+              container.sound.sfx('pop');
+              navigation.navigate('Belajar');
+            }}
+            style={styles.homeBtn}
+          >
+            <Text style={styles.homeBtnText}>🏠 Beranda</Text>
+          </Pressable>
+        }
+      >
         Arena Mini Games 🎮
       </ScreenTitle>
 
@@ -84,6 +99,19 @@ export function GamesScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  homeBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  homeBtnText: {
+    fontFamily: fonts.black,
+    fontSize: 13,
+    color: colors.ink,
+  },
   list: { padding: 16, gap: 14, paddingBottom: 60 },
   gameCard: {
     flexDirection: 'row',

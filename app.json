@@ -3,7 +3,7 @@
     "name": "BACALAH",
     "slug": "bacalah",
     "scheme": "bacalah",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "id.bacalah.app",
-      "versionCode": 8,
+      "versionCode": 9,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "RECORD_AUDIO"
