@@ -6,7 +6,15 @@ export const RATE_SLOW = 0.6;
 const PITCH = 1.15;
 const LANG = 'id-ID';
 
-export type SfxName = 'tap' | 'pop' | 'boop' | 'chime' | 'clap' | 'swoosh';
+export type SfxName =
+  | 'tap'
+  | 'pop'
+  | 'boop'
+  | 'chime'
+  | 'clap'
+  | 'swoosh'
+  | 'error_buzz'
+  | 'tada_magic';
 
 const SFX_SOURCES: Record<SfxName, number> = {
   tap: require('../../../assets/sfx/tap.wav'),
@@ -15,6 +23,8 @@ const SFX_SOURCES: Record<SfxName, number> = {
   chime: require('../../../assets/sfx/chime.wav'),
   clap: require('../../../assets/sfx/clap.wav'),
   swoosh: require('../../../assets/sfx/swoosh.wav'),
+  error_buzz: require('../../../assets/sfx/error_buzz.wav'),
+  tada_magic: require('../../../assets/sfx/tada_magic.wav'),
 };
 
 /** TTS Cici (id-ID, pitch ramah anak) + SFX lembut. */

@@ -16,13 +16,18 @@ import { randomHint, randomPraise } from '../../../data/content/feedback';
 import { DictationExercise } from '../../../domain/entities/DictationExercise';
 import { DictationGenerator } from '../../../domain/services/DictationGenerator';
 import { Celebration } from '../../components/common/Celebration';
-import { BigButton, HearButtons, ScreenTitle, Stars } from '../../components/common/ui';
+import { BigButton, ScreenTitle, Stars } from '../../components/common/ui';
 import { BubbleKeyboard } from '../../components/play/BubbleKeyboard';
 import { DictationInputSlot } from '../../components/play/DictationInputSlot';
 import { MascotCici, Mood } from '../../components/play/MascotCici';
 import { VoiceMicButton } from '../../components/play/VoiceMicButton';
 import { VoiceResult } from '../../../core/sound/VoiceEvaluatorService';
 import { useAppStore } from '../../stores/useAppStore';
+import { ToyBlockAudioButtons } from '../../components/play/ToyBlockAudioButtons';
+import {
+  InteractiveLetterBlock,
+  BlockFeedbackState,
+} from '../../components/play/InteractiveLetterBlock';
 
 const { width } = Dimensions.get('window');
 const SESSION_SIZE = 30; // 30 varian soal per level
@@ -62,6 +67,9 @@ export function DikteKuisScreen() {
     token: 0,
   });
 
+  // Feedback state per balok pilihan (BA, KI, JE, dll.)
+  const [blockFeedback, setBlockFeedback] = useState<{ [key: string]: BlockFeedbackState }>({});
+
   // End of session celebration
   const [isSessionComplete, setIsSessionComplete] = useState(false);
   const [unlockedNextSuccess, setUnlockedNextSuccess] = useState(false);
@@ -79,6 +87,7 @@ export function DikteKuisScreen() {
     setExercises(list);
     setCurrentIndex(0);
     setTyped('');
+    setBlockFeedback({});
     setMistakesThisQuestion(0);
     setTotalCorrectFirstTry(0);
     setIsSessionComplete(false);
@@ -137,8 +146,7 @@ export function DikteKuisScreen() {
     if (remainingTarget.toUpperCase().startsWith(syl.toUpperCase())) {
       const nextTyped = typed + syl.toUpperCase();
       setTyped(nextTyped);
-      container.sound.sfx('pop');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setBlockFeedback((prev) => ({ ...prev, [syl]: 'correct' }));
 
       if (nextTyped.length === currentExercise.target.length) {
         handleQuestionCompleted();
@@ -146,8 +154,7 @@ export function DikteKuisScreen() {
     } else {
       setMistakesThisQuestion((m) => m + 1);
       setSlotWobbleToken((t) => t + 1);
-      container.sound.sfx('boop');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setBlockFeedback((prev) => ({ ...prev, [syl]: 'wrong' }));
       setCiciMood('hint');
       setCiciMessage(randomHint());
     }
@@ -207,6 +214,7 @@ export function DikteKuisScreen() {
       } else {
         setCurrentIndex((i) => i + 1);
         setTyped('');
+        setBlockFeedback({});
         setMistakesThisQuestion(0);
         setCiciMood('idle');
         setCiciMessage('Luar biasa! Lanjut ke soal berikutnya! ✨');
@@ -234,6 +242,7 @@ export function DikteKuisScreen() {
         } else {
           setCurrentIndex((i) => i + 1);
           setTyped('');
+          setBlockFeedback({});
           setMistakesThisQuestion(0);
           setCiciMood('idle');
           setCiciMessage('Luar biasa! Lanjut ke soal berikutnya! ✨');
@@ -523,8 +532,8 @@ export function DikteKuisScreen() {
               )}
 
               <View style={styles.actionSection}>
-                <HearButtons
-                  text={currentExercise.speakText}
+                <ToyBlockAudioButtons
+                  speakText={currentExercise.speakText}
                   slowParts={currentExercise.slowParts}
                 />
 
@@ -555,21 +564,17 @@ export function DikteKuisScreen() {
             <View style={styles.syllablePickerArena}>
               <Text style={styles.pickerInstruction}>
                 {currentExercise?.kind === 'letter'
-                  ? 'Ketuk huruf yang kamu dengar:'
-                  : 'Ketuk balok suku kata di bawah secara berurutan:'}
+                  ? 'Ketuk atau geser balok huruf yang kamu dengar:'
+                  : 'Ketuk atau geser balok suku kata di bawah secara berurutan:'}
               </Text>
               <View style={styles.syllableGrid}>
                 {syllableTiles.map((syl, i) => (
-                  <Pressable
+                  <InteractiveLetterBlock
                     key={`${syl}-${i}`}
-                    onPress={() => handleSyllableBlockPress(syl)}
-                    style={[
-                      styles.syllableTile,
-                      raised('#F59E0B'),
-                    ]}
-                  >
-                    <Text style={styles.syllableTileText}>{syl}</Text>
-                  </Pressable>
+                    label={syl}
+                    feedbackState={blockFeedback[syl] || 'idle'}
+                    onSelect={handleSyllableBlockPress}
+                  />
                 ))}
               </View>
             </View>

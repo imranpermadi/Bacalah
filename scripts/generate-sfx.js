@@ -59,6 +59,25 @@ writeWav('pop', tone(380, 0.14, { sweepTo: 900, decay: 22 }));
 writeWav('boop', tone(330, 0.22, { sweepTo: 260, decay: 10 }).map((s) => s * 0.5));
 // swoosh: desingan cepat meluncur
 writeWav('swoosh', tone(750, 0.18, { sweepTo: 180, decay: 15 }));
+// error_buzz: getaran dengung kartun saat anak menjawab salah
+writeWav(
+  'error_buzz',
+  mix([
+    { offset: 0, data: tone(160, 0.28, { sweepTo: 110, decay: 7 }) },
+    { offset: 0, data: tone(215, 0.28, { sweepTo: 145, decay: 7 }) },
+  ])
+);
+// tada_magic: jingle magis ceria kemenangan saat anak menjawab benar
+writeWav(
+  'tada_magic',
+  mix([
+    { offset: n(0.0), data: tone(523.25, 0.45, { decay: 4 }) }, // C5
+    { offset: n(0.08), data: tone(659.25, 0.45, { decay: 4 }) }, // E5
+    { offset: n(0.16), data: tone(783.99, 0.5, { decay: 3.5 }) }, // G5
+    { offset: n(0.24), data: tone(1046.5, 0.65, { decay: 3 }) }, // C6
+    { offset: n(0.32), data: tone(1318.51, 0.75, { decay: 2.5 }) }, // E6 sparkle
+  ])
+);
 // chime: tiga nada naik
 writeWav(
   'chime',
