@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
 import { colors, fonts, radius, raised, spacing } from '../../../core/theme';
 import { ALPHABET, letterInfo } from '../../../data/content/alphabet';
@@ -20,6 +22,11 @@ import { AlphabetMasteryEngine } from '../../../domain/services/AlphabetMasteryE
 import { LanguageMasteryService } from '../../../domain/services/LanguageMasteryService';
 import { BigButton, ScreenTitle, Stars } from '../../components/common/ui';
 import { MascotCici } from '../../components/play/MascotCici';
+import { StaggeredEntrance } from '../../components/motion/StaggeredEntrance';
+import { FloatingBunnyAvatar } from '../../components/profil/FloatingBunnyAvatar';
+import { ShimmerStarLevelCard } from '../../components/profil/ShimmerStarLevelCard';
+import { TypewriterCiciBubble } from '../../components/profil/TypewriterCiciBubble';
+import { CloudSyncPillCard } from '../../components/profil/CloudSyncPillCard';
 import { useAppStore } from '../../stores/useAppStore';
 
 const { width } = Dimensions.get('window');
@@ -111,413 +118,369 @@ export function ProfilScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
-        {/* Child Profile Card */}
-        <View style={styles.profileHeader}>
-          <Text style={styles.avatar}>{profile.avatar || '🐱'}</Text>
-          <View style={styles.profileInfo}>
-            <Text style={styles.name}>{profile.name}</Text>
-            {profile.birthDate ? (
-              <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: colors.inkSoft }}>
-                🎂 Lahir: {profile.birthDate}
-              </Text>
-            ) : null}
-            <View style={styles.starRow}>
-              <Text style={{ fontSize: 24 }}>⭐</Text>
-              <Text style={styles.starCount}>{profile.stars} Bintang</Text>
-              <Text style={[styles.modeBadge, { marginLeft: 8 }]}>
-                Level {profile.unlockedLevel || 1} 🏆
-              </Text>
-            </View>
-            <View style={{ marginTop: 8 }}>
-              <BigButton
-                label="👥 Ganti Profil / Tambah Anak"
-                small
-                color={colors.sunny}
-                edge={colors.sunnyDark}
+        {/* 1. Header & Profil Anak (Kelinci Mengambang Perlahan) */}
+        <StaggeredEntrance index={0}>
+          <View style={styles.profileHeaderCard}>
+            <LinearGradient
+              colors={['#FFFFFF', '#FFFDF5']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.profileHeaderGradient}
+            >
+              <FloatingBunnyAvatar
+                avatarEmoji={profile.avatar || '🐰'}
                 onPress={() => {
-                  container.sound.sfx('pop');
                   unselectProfile();
                 }}
               />
-            </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileChildName}>{profile.name}</Text>
+                {profile.birthDate ? (
+                  <Text style={styles.profileBirthDate}>
+                    🎂 Lahir: {profile.birthDate}
+                  </Text>
+                ) : null}
+                <View style={{ marginTop: 8 }}>
+                  <BigButton
+                    label="👥 Ganti Profil / Tambah Anak"
+                    small
+                    color={colors.sunny}
+                    edge={colors.sunnyDark}
+                    onPress={() => {
+                      container.sound.sfx('pop');
+                      unselectProfile();
+                    }}
+                  />
+                </View>
+              </View>
+            </LinearGradient>
           </View>
-        </View>
+        </StaggeredEntrance>
 
-        {/* Mascot Cici Encouragement */}
-        <View style={{ marginVertical: 4 }}>
-          <MascotCici
-            mood="talk"
-            message={`Hai ${profile.name}! Cici terus mencatat perkembangan membaca dan lafal suaramu! 😸`}
-            size={68}
+        {/* 2. Card '13 Bintang & Level 2' dengan Animasi Shimmer Berkilau Setiap 3 Detik */}
+        <StaggeredEntrance index={1}>
+          <ShimmerStarLevelCard
+            stars={profile.stars}
+            level={profile.unlockedLevel || 1}
           />
-        </View>
+        </StaggeredEntrance>
 
-        {/* Cloud Sync & Google Account Status */}
-        <View style={[styles.sectionCard, { backgroundColor: '#F0F9FF', borderColor: colors.sky }]}>
-          <View style={styles.syncHeaderRow}>
-            <View>
-              <Text style={styles.sectionTitle}>☁️ Sinkronisasi Akun Google</Text>
-              <Text style={styles.sectionSubtitle}>
-                Skor bintang dan level tersimpan di cloud agar tidak terhapus saat pembaruan aplikasi.
-              </Text>
-            </View>
-          </View>
+        {/* 3. Balon Kata Cici dengan Typewriter Effect & Audio Ketikan */}
+        <StaggeredEntrance index={2}>
+          <TypewriterCiciBubble
+            fullText={`Hai ${profile.name}! Cici terus mencatat perkembangan membaca dan lafal suaramu! 😸`}
+            mascotEmoji="🐱"
+          />
+        </StaggeredEntrance>
 
-          {googleAccount ? (
-            <View style={styles.googleConnectedBox}>
-              <View style={styles.googleUserRow}>
-                <View style={styles.googleAvatarBadge}>
-                  <Text style={styles.googleAvatarText}>G</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.googleUserName}>{googleAccount.name}</Text>
-                  <Text style={styles.googleUserEmail}>{googleAccount.email}</Text>
-                </View>
-                <Text style={styles.syncedBadge}>✓ Terhubung</Text>
-              </View>
-
-              {lastSyncMessage ? (
-                <Text style={styles.syncMsg}>{lastSyncMessage}</Text>
-              ) : null}
-
-              <View style={styles.syncBtnRow}>
-                <BigButton
-                  label={isSyncing ? '⏳ Menyimpan…' : '☁️ Simpan ke Cloud'}
-                  small
-                  color={colors.mint}
-                  edge={colors.mintDark}
-                  disabled={isSyncing}
-                  onPress={async () => {
-                    await syncCloud();
-                    container.sound.sfx('chime');
-                  }}
-                />
-                <BigButton
-                  label={isSyncing ? '⏳ Memulihkan…' : '🔄 Pulihkan Data'}
-                  small
-                  color={colors.sky}
-                  edge={colors.skyDark}
-                  disabled={isSyncing}
-                  onPress={async () => {
-                    await restoreCloud();
-                    container.sound.sfx('chime');
-                  }}
-                />
-              </View>
-              <Pressable onPress={logoutGoogle} style={styles.disconnectBtn}>
-                <Text style={styles.disconnectText}>Putuskan Akun</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <View style={styles.googlePromptBox}>
-              <Text style={styles.googlePromptText}>
-                Belum terhubung ke Akun Google. Masuk dengan SSO Google agar seluruh bintang & catatan belajar anak tetap aman saat HP diperbarui!
-              </Text>
-              <View style={{ gap: 8, marginTop: 4 }}>
-                <BigButton
-                  label={isSyncing ? "⏳ Menghubungkan Google…" : "🌐 Masuk dengan SSO Google"}
-                  color={colors.coral}
-                  edge={colors.coralDark}
-                  disabled={isSyncing}
-                  onPress={async () => {
-                    await loginGoogleSSO();
-                    container.sound.sfx('chime');
-                  }}
-                />
-                <BigButton
-                  label="✏️ Masukkan Email Akun Manual"
-                  small
-                  color={colors.sunny}
-                  edge={colors.sunnyDark}
-                  onPress={() => setShowLoginModal(true)}
-                />
-              </View>
-            </View>
-          )}
-        </View>
+        {/* 4. Card 'Sinkronisasi Cloud' dengan Soft UI / Pill Shape & Success Bounce */}
+        <StaggeredEntrance index={3}>
+          <CloudSyncPillCard
+            googleAccount={googleAccount}
+            lastSyncMessage={lastSyncMessage}
+            isSyncing={isSyncing}
+            onSyncCloud={syncCloud}
+            onRestoreCloud={restoreCloud}
+            onLoginGoogleSSO={loginGoogleSSO}
+            onOpenManualModal={() => setShowLoginModal(true)}
+            onLogoutGoogle={logoutGoogle}
+          />
+        </StaggeredEntrance>
 
         {/* Leveling Penguasaan Bahasa Anak (Poin 3) */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>🏆 Leveling Penguasaan Bahasa</Text>
-          <Text style={styles.sectionSubtitle}>
-            Peta kemajuan anak memahami huruf, suku kata, kata, hingga kalimat.
-          </Text>
-
-          {/* Overall Progress Gauge */}
-          <View style={styles.stageHeroBox}>
-            <View style={styles.stageHeader}>
-              <Text style={styles.stageTitle}>{diagnosis.currentMilestoneStage}</Text>
-              <Text style={styles.stageScore}>{diagnosis.overallMasteryPercent}%</Text>
-            </View>
-            <View style={styles.progressBarBg}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { width: `${Math.max(8, diagnosis.overallMasteryPercent)}%` },
-                ]}
-              />
-            </View>
-            <Text style={styles.stageSub}>
-              {diagnosis.totalLettersLearned} dari 26 huruf sudah dilatih secara aktif.
+        <StaggeredEntrance index={4}>
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>🏆 Leveling Penguasaan Bahasa</Text>
+            <Text style={styles.sectionSubtitle}>
+              Peta kemajuan anak memahami huruf, suku kata, kata, hingga kalimat.
             </Text>
-          </View>
 
-          {/* 6 Jenjang Kurikulum Milestone Cards */}
-          <View style={styles.milestoneList}>
-            {diagnosis.levels.map((lvl) => {
-              const isCompleted = lvl.status === 'completed';
-              const isInProgress = lvl.status === 'in_progress';
-              return (
+            {/* Overall Progress Gauge */}
+            <View style={styles.stageHeroBox}>
+              <View style={styles.stageHeader}>
+                <Text style={styles.stageTitle}>{diagnosis.currentMilestoneStage}</Text>
+                <Text style={styles.stageScore}>{diagnosis.overallMasteryPercent}%</Text>
+              </View>
+              <View style={styles.progressBarBg}>
                 <View
-                  key={lvl.level}
                   style={[
-                    styles.milestoneCard,
-                    isCompleted && styles.milestoneCardCompleted,
-                    isInProgress && styles.milestoneCardActive,
+                    styles.progressBarFill,
+                    { width: `${Math.max(8, diagnosis.overallMasteryPercent)}%` },
                   ]}
-                >
-                  <Text style={styles.milestoneEmoji}>{lvl.emoji}</Text>
-                  <View style={styles.milestoneInfo}>
-                    <View style={styles.milestoneTopRow}>
-                      <Text style={styles.milestoneTitle}>
-                        L{lvl.level}: {lvl.title}
-                      </Text>
-                      {lvl.bestStars > 0 ? (
-                        <Stars count={lvl.bestStars} size={16} />
-                      ) : (
-                        <Text style={styles.milestoneStatusLabel}>
-                          {isInProgress ? 'Sedang Dilatih' : 'Terkunci'}
+                />
+              </View>
+              <Text style={styles.stageSub}>
+                {diagnosis.totalLettersLearned} dari 26 huruf sudah dilatih secara aktif.
+              </Text>
+            </View>
+
+            {/* 6 Jenjang Kurikulum Milestone Cards */}
+            <View style={styles.milestoneList}>
+              {diagnosis.levels.map((lvl) => {
+                const isCompleted = lvl.status === 'completed';
+                const isInProgress = lvl.status === 'in_progress';
+                return (
+                  <View
+                    key={lvl.level}
+                    style={[
+                      styles.milestoneCard,
+                      isCompleted && styles.milestoneCardCompleted,
+                      isInProgress && styles.milestoneCardActive,
+                    ]}
+                  >
+                    <Text style={styles.milestoneEmoji}>{lvl.emoji}</Text>
+                    <View style={styles.milestoneInfo}>
+                      <View style={styles.milestoneTopRow}>
+                        <Text style={styles.milestoneTitle}>
+                          L{lvl.level}: {lvl.title}
                         </Text>
-                      )}
+                        {lvl.bestStars > 0 ? (
+                          <Stars count={lvl.bestStars} size={16} />
+                        ) : (
+                          <Text style={styles.milestoneStatusLabel}>
+                            {isInProgress ? 'Sedang Dilatih' : 'Terkunci'}
+                          </Text>
+                        )}
+                      </View>
+                      <Text style={styles.milestoneDesc}>{lvl.description}</Text>
+                      <Text style={styles.milestoneSessions}>
+                        {lvl.sessions > 0
+                          ? `Sudah diselesaikan ${lvl.sessions} kali latihan`
+                          : 'Belum pernah diselesaikan'}
+                      </Text>
                     </View>
-                    <Text style={styles.milestoneDesc}>{lvl.description}</Text>
-                    <Text style={styles.milestoneSessions}>
-                      {lvl.sessions > 0
-                        ? `Sudah diselesaikan ${lvl.sessions} kali latihan`
-                        : 'Belum pernah diselesaikan'}
-                    </Text>
                   </View>
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
           </View>
-        </View>
+        </StaggeredEntrance>
 
         {/* Diagnosis Huruf Rawan Tertukar & Huruf Lemah (Poin 3) */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>🔍 Diagnosis Kesalahan & Huruf Tertukar</Text>
-          <Text style={styles.sectionSubtitle}>
-            Mengetahui di mana letak kesulitan anak agar orang tua dapat membimbing dengan tepat.
-          </Text>
+        <StaggeredEntrance index={5}>
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>🔍 Diagnosis Kesalahan & Huruf Tertukar</Text>
+            <Text style={styles.sectionSubtitle}>
+              Mengetahui di mana letak kesulitan anak agar orang tua dapat membimbing dengan tepat.
+            </Text>
 
-          {diagnosis.confusions.length > 0 ? (
-            <View style={styles.confusionBox}>
-              <Text style={styles.confusionHeader}>⚠️ Huruf yang Sering Tertukar:</Text>
-              {diagnosis.confusions.map((c, idx) => (
-                <View key={idx} style={styles.confusionRow}>
-                  <View style={styles.confusionLetters}>
-                    <Text style={styles.confusionTarget}>{c.expected}</Text>
-                    <Text style={styles.confusionArrow}> tertukar dengan </Text>
-                    <Text style={styles.confusionMistake}>{c.pressed}</Text>
+            {diagnosis.confusions.length > 0 ? (
+              <View style={styles.confusionBox}>
+                <Text style={styles.confusionHeader}>⚠️ Huruf yang Sering Tertukar:</Text>
+                {diagnosis.confusions.map((c, idx) => (
+                  <View key={idx} style={styles.confusionRow}>
+                    <View style={styles.confusionLetters}>
+                      <Text style={styles.confusionTarget}>{c.expected}</Text>
+                      <Text style={styles.confusionArrow}> tertukar dengan </Text>
+                      <Text style={styles.confusionMistake}>{c.pressed}</Text>
+                    </View>
+                    <Text style={styles.confusionTimes}>{c.times}x keliru</Text>
                   </View>
-                  <Text style={styles.confusionTimes}>{c.times}x keliru</Text>
+                ))}
+                <View style={styles.parentTipBox}>
+                  <Text style={styles.parentTipTitle}>💡 Tip Cici untuk Orang Tua:</Text>
+                  <Text style={styles.parentTipText}>
+                    Anak usia dini wajar tertukar huruf yang bentuknya mirip/cermin (seperti B dan D, atau M dan N).
+                    Latih anak memperhatikan arah lengkungan dan dengarkan suaranya berulang-ulang!
+                  </Text>
                 </View>
-              ))}
-              <View style={styles.parentTipBox}>
-                <Text style={styles.parentTipTitle}>💡 Tip Cici untuk Orang Tua:</Text>
-                <Text style={styles.parentTipText}>
-                  Anak usia dini wajar tertukar huruf yang bentuknya mirip/cermin (seperti B dan D, atau M dan N).
-                  Latih anak memperhatikan arah lengkungan dan dengarkan suaranya berulang-ulang!
+              </View>
+            ) : (
+              <View style={styles.emptyWeakBox}>
+                <Text style={styles.emptyWeakText}>
+                  ✨ Luar biasa! Belum ada pola huruf yang tertukar secara konsisten.
                 </Text>
               </View>
-            </View>
-          ) : (
-            <View style={styles.emptyWeakBox}>
-              <Text style={styles.emptyWeakText}>
-                ✨ Luar biasa! Belum ada pola huruf yang tertukar secara konsisten.
-              </Text>
-            </View>
-          )}
+            )}
 
-          {/* Huruf Lemah yang Perlu Dilatih */}
-          {diagnosis.weakestLetters.length > 0 ? (
-            <View style={{ marginTop: 14 }}>
-              <Text style={styles.subSectionTitle}>🎯 Huruf yang Perlu Penguatan:</Text>
-              <View style={styles.weakList}>
-                {diagnosis.weakestLetters.map((item) => {
-                  const acc = Math.round(((item.correct / item.attempts) || 0) * 100);
-                  const info = letterInfo(item.letter);
-                  return (
-                    <View key={item.letter} style={styles.weakItem}>
-                      <Pressable
-                        onPress={() => container.sound.hear(info.speak)}
-                        style={[
-                          styles.weakLetterBubble,
-                          raised(colors.coralDark),
-                          { backgroundColor: colors.coral },
-                        ]}
-                      >
-                        <Text style={styles.weakLetterText}>{item.letter}</Text>
-                      </Pressable>
-                      <View style={styles.weakDetails}>
-                        <Text style={styles.weakWord}>
-                          {info.emoji} {item.letter} = {info.word}
-                        </Text>
-                        <Text style={styles.weakStats}>
-                          Akurasi: {acc}% ({item.correct} benar / {item.wrong} keliru)
-                        </Text>
+            {/* Huruf Lemah yang Perlu Dilatih */}
+            {diagnosis.weakestLetters.length > 0 ? (
+              <View style={{ marginTop: 14 }}>
+                <Text style={styles.subSectionTitle}>🎯 Huruf yang Perlu Penguatan:</Text>
+                <View style={styles.weakList}>
+                  {diagnosis.weakestLetters.map((item) => {
+                    const acc = Math.round(((item.correct / item.attempts) || 0) * 100);
+                    const info = letterInfo(item.letter);
+                    return (
+                      <View key={item.letter} style={styles.weakItem}>
+                        <Pressable
+                          onPress={() => container.sound.hear(info.speak)}
+                          style={[
+                            styles.weakLetterBubble,
+                            raised(colors.coralDark),
+                            { backgroundColor: colors.coral },
+                          ]}
+                        >
+                          <Text style={styles.weakLetterText}>{item.letter}</Text>
+                        </Pressable>
+                        <View style={styles.weakDetails}>
+                          <Text style={styles.weakWord}>
+                            {info.emoji} {item.letter} = {info.word}
+                          </Text>
+                          <Text style={styles.weakStats}>
+                            Akurasi: {acc}% ({item.correct} benar / {item.wrong} keliru)
+                          </Text>
+                        </View>
+                        <BigButton
+                          label="🔊 Bunyi"
+                          small
+                          color={colors.sunny}
+                          edge={colors.sunnyDark}
+                          onPress={() => container.sound.hear(info.speak)}
+                        />
                       </View>
-                      <BigButton
-                        label="🔊 Bunyi"
-                        small
-                        color={colors.sunny}
-                        edge={colors.sunnyDark}
-                        onPress={() => container.sound.hear(info.speak)}
-                      />
-                    </View>
-                  );
-                })}
+                    );
+                  })}
+                </View>
               </View>
-            </View>
-          ) : null}
-        </View>
+            ) : null}
+          </View>
+        </StaggeredEntrance>
 
         {/* 26 Letters Alphabet Map (A through Z) */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>🔤 Peta Penguasaan 26 Huruf (A–Z)</Text>
-          <Text style={styles.sectionSubtitle}>
-            Ketuk salah satu huruf untuk melihat catatan akurasi dan mendengarkan bunyinya!
-          </Text>
+        <StaggeredEntrance index={6}>
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>🔤 Peta Penguasaan 26 Huruf (A–Z)</Text>
+            <Text style={styles.sectionSubtitle}>
+              Ketuk salah satu huruf untuk melihat catatan akurasi dan mendengarkan bunyinya!
+            </Text>
 
-          <View style={styles.letterGrid}>
-            {ALPHABET.map((alpha) => {
-              const stat = stats.find((s) => s.letter === alpha.letter);
-              const colorInfo = getStatusColor(stat);
-              return (
-                <Pressable
-                  key={alpha.letter}
-                  onPress={() => {
-                    setSelectedStat(stat || {
-                      letter: alpha.letter,
-                      correct: 0,
-                      wrong: 0,
-                      attempts: 0,
-                      streak: 0,
-                      lastSeen: null,
-                    });
-                    container.sound.hear(alpha.speak);
-                  }}
-                  style={[
-                    styles.gridLetterCell,
-                    raised(colorInfo.border),
-                    { backgroundColor: colorInfo.bg },
-                  ]}
-                >
-                  <Text style={styles.gridLetterText}>{alpha.letter}</Text>
-                  <Text style={{ fontSize: 10 }}>{alpha.emoji}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+            <View style={styles.letterGrid}>
+              {ALPHABET.map((alpha) => {
+                const stat = stats.find((s) => s.letter === alpha.letter);
+                const colorInfo = getStatusColor(stat);
+                return (
+                  <Pressable
+                    key={alpha.letter}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setSelectedStat(stat || {
+                        letter: alpha.letter,
+                        correct: 0,
+                        wrong: 0,
+                        attempts: 0,
+                        streak: 0,
+                        lastSeen: null,
+                      });
+                      container.sound.hear(alpha.speak);
+                    }}
+                    style={[
+                      styles.gridLetterCell,
+                      raised(colorInfo.border),
+                      { backgroundColor: colorInfo.bg },
+                    ]}
+                  >
+                    <Text style={styles.gridLetterText}>{alpha.letter}</Text>
+                    <Text style={{ fontSize: 10 }}>{alpha.emoji}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
-          {/* Legend */}
-          <View style={styles.legendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: colors.mint }]} />
-              <Text style={styles.legendLabel}>Hebat</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: colors.sky }]} />
-              <Text style={styles.legendLabel}>Hampir</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: colors.sunny }]} />
-              <Text style={styles.legendLabel}>Belajar</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#EAE6D6' }]} />
-              <Text style={styles.legendLabel}>Baru</Text>
+            {/* Legend */}
+            <View style={styles.legendRow}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: colors.mint }]} />
+                <Text style={styles.legendLabel}>Hebat</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: colors.sky }]} />
+                <Text style={styles.legendLabel}>Hampir</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: colors.sunny }]} />
+                <Text style={styles.legendLabel}>Belajar</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: '#EAE6D6' }]} />
+                <Text style={styles.legendLabel}>Baru</Text>
+              </View>
             </View>
           </View>
-        </View>
+        </StaggeredEntrance>
 
         {/* Voice Challenge Activity */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>🎤 Aktivitas Evaluasi Suara</Text>
-          <Text style={styles.sectionSubtitle}>
-            Catatan latihan menirukan ucapan Cici lewat mikrofon.
-          </Text>
-          <View style={styles.voiceStatsRow}>
-            <View style={styles.voiceStatBox}>
-              <Text style={styles.voiceStatNum}>{voice.attempts}</Text>
-              <Text style={styles.voiceStatLabel}>Kali Bicara</Text>
-            </View>
-            <View style={styles.voiceStatBox}>
-              <Text style={styles.voiceStatNum}>
-                {voice.avgStars ? voice.avgStars.toFixed(1) : '0'} ⭐
-              </Text>
-              <Text style={styles.voiceStatLabel}>Rata-Rata Bintang</Text>
+        <StaggeredEntrance index={7}>
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>🎤 Aktivitas Evaluasi Suara</Text>
+            <Text style={styles.sectionSubtitle}>
+              Catatan latihan menirukan ucapan Cici lewat mikrofon.
+            </Text>
+            <View style={styles.voiceStatsRow}>
+              <View style={styles.voiceStatBox}>
+                <Text style={styles.voiceStatNum}>{voice.attempts}</Text>
+                <Text style={styles.voiceStatLabel}>Kali Bicara</Text>
+              </View>
+              <View style={styles.voiceStatBox}>
+                <Text style={styles.voiceStatNum}>
+                  {voice.avgStars ? voice.avgStars.toFixed(1) : '0'} ⭐
+                </Text>
+                <Text style={styles.voiceStatLabel}>Rata-Rata Bintang</Text>
+              </View>
             </View>
           </View>
-        </View>
+        </StaggeredEntrance>
 
         {/* Settings & Audio Controls */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>⚙️ Pengaturan Pembelajaran & Suara</Text>
-          <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: colors.inkSoft, marginTop: 4 }}>
-            Sesuaikan kecepatan pelafalan Cici saat membacakan huruf, suku kata, dan cerita agar optimal untuk anak:
-          </Text>
+        <StaggeredEntrance index={8}>
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>⚙️ Pengaturan Pembelajaran & Suara</Text>
+            <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: colors.inkSoft, marginTop: 4 }}>
+              Sesuaikan kecepatan pelafalan Cici saat membacakan huruf, suku kata, dan cerita agar optimal untuk anak:
+            </Text>
 
-          <View style={{ flexDirection: 'row', gap: 8, marginVertical: 10 }}>
-            {[
-              { label: '🐢 Pelan', rate: 0.65, desc: 'Untuk Balita / Pemula' },
-              { label: '🐱 Normal', rate: 0.85, desc: 'Standar Ramah Anak' },
-              { label: '🚀 Cepat', rate: 1.0, desc: 'Untuk Anak Lancar' },
-            ].map((spd) => (
-              <Pressable
-                key={spd.label}
-                onPress={() => {
-                  container.sound.speak(`Halo! Aku Cici, senang sekali belajar bersamamu!`, spd.rate);
-                  container.sound.sfx('pop');
-                }}
-                style={{
-                  flex: 1,
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: radius.md,
-                  padding: 10,
-                  alignItems: 'center',
-                  borderWidth: 2,
-                  borderColor: '#FDE68A',
-                }}
-              >
-                <Text style={{ fontFamily: fonts.black, fontSize: 14, color: colors.ink }}>
-                  {spd.label}
-                </Text>
-                <Text style={{ fontFamily: fonts.regular, fontSize: 10, color: colors.inkSoft, textAlign: 'center', marginTop: 2 }}>
-                  {spd.desc}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+            <View style={{ flexDirection: 'row', gap: 8, marginVertical: 10 }}>
+              {[
+                { label: '🐢 Pelan', rate: 0.65, desc: 'Untuk Balita / Pemula' },
+                { label: '🐱 Normal', rate: 0.85, desc: 'Standar Ramah Anak' },
+                { label: '🚀 Cepat', rate: 1.0, desc: 'Untuk Anak Lancar' },
+              ].map((spd) => (
+                <Pressable
+                  key={spd.label}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    container.sound.speak(`Halo! Aku Cici, senang sekali belajar bersamamu!`, spd.rate);
+                    container.sound.sfx('pop');
+                  }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: radius.md,
+                    padding: 10,
+                    alignItems: 'center',
+                    borderWidth: 2,
+                    borderColor: '#FDE68A',
+                  }}
+                >
+                  <Text style={{ fontFamily: fonts.black, fontSize: 14, color: colors.ink }}>
+                    {spd.label}
+                  </Text>
+                  <Text style={{ fontFamily: fonts.regular, fontSize: 10, color: colors.inkSoft, textAlign: 'center', marginTop: 2 }}>
+                    {spd.desc}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
 
-          <View style={{ gap: 10, marginTop: 4 }}>
-            <BigButton
-              label="🔊 Tes Artikulasi Suara Cici"
-              color={colors.mint}
-              edge={colors.mintDark}
-              onPress={() =>
-                container.sound.speak('Halo adik pintar! Ayo terus rajin membaca bersama Cici ya! 🐱✨')
-              }
-            />
-            <BigButton
-              label="🗑️ Reset Seluruh Data & Bintang Anak"
-              color="#FFF0F0"
-              edge="#FFAAAA"
-              textColor="#D93838"
-              onPress={handleReset}
-            />
+            <View style={{ gap: 10, marginTop: 4 }}>
+              <BigButton
+                label="🔊 Tes Artikulasi Suara Cici"
+                color={colors.mint}
+                edge={colors.mintDark}
+                onPress={() =>
+                  container.sound.speak('Halo adik pintar! Ayo terus rajin membaca bersama Cici ya! 🐱✨')
+                }
+              />
+              <BigButton
+                label="🗑️ Reset Seluruh Data & Bintang Anak"
+                color="#FFF0F0"
+                edge="#FFAAAA"
+                textColor="#D93838"
+                onPress={handleReset}
+              />
+            </View>
           </View>
-        </View>
+        </StaggeredEntrance>
       </ScrollView>
 
       {/* Google Connect Modal */}
@@ -654,6 +617,40 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   scroll: { paddingHorizontal: 16, paddingBottom: 100, gap: 16 },
+  profileHeaderCard: {
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#FDE68A',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  profileHeaderGradient: {
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  profileChildName: {
+    fontFamily: fonts.black,
+    fontSize: 22,
+    color: colors.ink,
+  },
+  profileBirthDate: {
+    fontFamily: fonts.heavy,
+    fontSize: 12,
+    color: colors.coralDark,
+    backgroundColor: '#FFF2EB',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    marginTop: 2,
+  },
   profileHeader: {
     backgroundColor: '#FFFFFF',
     borderRadius: radius.lg,
