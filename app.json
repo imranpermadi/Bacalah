@@ -43,10 +43,9 @@
       "./plugins/with-slim-build",
       "expo-web-browser"
     ],
+    "owner": "imronakhi",
     "extra": {
-      "eas": {
-        "projectId": "f24c64b0-dfac-4a01-9390-63113d7fdd08"
-      }
+      "eas": {}
     }
   }
 }
