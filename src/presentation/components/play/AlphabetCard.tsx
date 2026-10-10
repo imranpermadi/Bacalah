@@ -2,7 +2,8 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { bubblePalette, colors, fonts } from '../../../core/theme';
 import { AlphabetLetter } from '../../../domain/entities/AlphabetLetter';
-import { BigButton, HearButtons } from '../common/ui';
+import { BigButton } from '../common/ui';
+import { ToyBlockAudioButtons } from './ToyBlockAudioButtons';
 import { container } from '../../../core/di/container';
 
 /** Kartu huruf besar: huruf kapital + kecil, bunyi fonik, dan kata bergambar. */
@@ -22,8 +23,17 @@ export function AlphabetCard({ item, index }: { item: AlphabetLetter; index: num
           {item.word.slice(1)}
         </Text>
       </View>
-      <BigButton label={`🎵 Bunyi huruf ${item.letter}`} color="#FFFFFF" edge="#DDD" onPress={() => container.sound.hear(item.speak)} style={{ alignSelf: 'stretch', marginBottom: 10 }} />
-      <HearButtons text={item.word.toLowerCase()} slowParts={item.word.toLowerCase().split('')} />
+      <BigButton
+        label={`🎵 Bunyi huruf ${item.letter}`}
+        color="#FFFFFF"
+        edge="#DDD"
+        onPress={() => container.sound.hear(item.speak)}
+        style={{ alignSelf: 'stretch', marginBottom: 10 }}
+      />
+      <ToyBlockAudioButtons
+        speakText={item.word.toLowerCase()}
+        slowParts={item.word.toLowerCase().split('')}
+      />
     </View>
   );
 }

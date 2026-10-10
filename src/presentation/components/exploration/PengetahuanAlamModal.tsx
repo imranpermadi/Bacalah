@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Dimensions,
+  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -15,6 +16,8 @@ import { colors, fonts, radius, raised, spacing } from '../../../core/theme';
 import { BigButton } from '../common/ui';
 import { NATURE_SCIENCE_FACTS, NatureScienceFact } from '../../../data/content/natureScienceData';
 import { ScienceAnimatedStage } from './ScienceAnimatedStage';
+import { ScienceFactCard3D } from './ScienceFactCard3D';
+import { StaggeredEntrance } from '../motion/StaggeredEntrance';
 
 const { width } = Dimensions.get('window');
 
@@ -80,80 +83,72 @@ export function PengetahuanAlamModal({
         </View>
 
         {!activeFact ? (
-          /* List View */
-          <ScrollView contentContainerStyle={styles.listContainer} showsVerticalScrollIndicator={false}>
-            {/* Banner */}
-            <View style={styles.bannerBox}>
-              <Text style={styles.bannerEmoji}>🌍🔭🔬</Text>
-              <Text style={styles.bannerTitle}>Pengetahuan Alam Anak Pintar</Text>
-              <Text style={styles.bannerSubtitle}>
-                Membaca 20 fakta sains seru tentang bumi, antariksa, hewan unik, dan tubuh kita!
-              </Text>
-            </View>
-
-            {/* Category Filter Chips */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chipRow}
-            >
-              {CATEGORIES.map((cat) => {
-                const isSelected = selectedCategory === cat;
-                return (
-                  <Pressable
-                    key={cat}
-                    onPress={() => {
-                      setSelectedCategory(cat);
-                      container.sound.sfx('pop');
-                      Haptics.selectionAsync();
-                    }}
-                    style={[
-                      styles.chip,
-                      isSelected && styles.chipSelected,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        isSelected && styles.chipTextSelected,
-                      ]}
-                    >
-                      {cat}
+          /* List View via FlatList & Staggered 3D Cards */
+          <FlatList
+            data={filteredFacts}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={5}
+            maxToRenderPerBatch={6}
+            ListHeaderComponent={
+              <View>
+                {/* Banner */}
+                <StaggeredEntrance index={0}>
+                  <View style={styles.bannerBox}>
+                    <Text style={styles.bannerEmoji}>🌍🔭🔬</Text>
+                    <Text style={styles.bannerTitle}>Pengetahuan Alam Anak Pintar</Text>
+                    <Text style={styles.bannerSubtitle}>
+                      Membaca 20 fakta sains seru tentang bumi, antariksa, hewan unik, dan tubuh kita!
                     </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+                  </View>
+                </StaggeredEntrance>
 
-            {/* Facts Grid */}
-            <View style={styles.grid}>
-              {filteredFacts.map((fact, idx) => (
-                <Pressable
-                  key={fact.id}
-                  onPress={() => handleOpenFact(fact)}
-                  style={[
-                    styles.factCard,
-                    { borderTopColor: fact.accentColor, borderTopWidth: 5 },
-                    raised(colors.line),
-                  ]}
-                >
-                  <View style={styles.factCardHeader}>
-                    <Text style={styles.factEmoji}>{fact.emoji}</Text>
-                    <View style={styles.categoryBadge}>
-                      <Text style={styles.categoryBadgeText}>{fact.category}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.factTitle}>{fact.title}</Text>
-                  <Text style={styles.factQuestion} numberOfLines={2}>
-                    ❓ {fact.question}
-                  </Text>
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.cardFooterText}>Baca Selengkapnya →</Text>
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          </ScrollView>
+                {/* Category Filter Chips */}
+                <StaggeredEntrance index={1}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.chipRow}
+                  >
+                    {CATEGORIES.map((cat) => {
+                      const isSelected = selectedCategory === cat;
+                      return (
+                        <Pressable
+                          key={cat}
+                          onPress={() => {
+                            setSelectedCategory(cat);
+                            container.sound.sfx('pop');
+                            Haptics.selectionAsync();
+                          }}
+                          style={[
+                            styles.chip,
+                            isSelected && styles.chipSelected,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              isSelected && styles.chipTextSelected,
+                            ]}
+                          >
+                            {cat}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </StaggeredEntrance>
+              </View>
+            }
+            renderItem={({ item, index }) => (
+              <ScienceFactCard3D
+                fact={item}
+                index={index + 2}
+                onOpen={handleOpenFact}
+              />
+            )}
+          />
         ) : (
           /* Fact Detail Reader View */
           <ScrollView contentContainerStyle={styles.readerContainer} showsVerticalScrollIndicator={false}>

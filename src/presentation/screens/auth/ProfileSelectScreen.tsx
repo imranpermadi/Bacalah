@@ -11,10 +11,13 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
 import { colors, fonts, radius, raised, spacing } from '../../../core/theme';
 import { BigButton, ScreenTitle, Stars } from '../../components/common/ui';
 import { MascotCici } from '../../components/play/MascotCici';
+import { StaggeredEntrance } from '../../components/motion/StaggeredEntrance';
 import { useAppStore } from '../../stores/useAppStore';
 
 const { width } = Dimensions.get('window');
@@ -106,12 +109,15 @@ export function ProfileSelectScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Siapa yang Mau Belajar Hari Ini? 🎓</Text>
-        <Text style={styles.headerSubtitle}>
-          Pilih profil anak untuk melanjutkan belajar dan memantau skor mandiri.
-        </Text>
-      </View>
+      {/* 0. Header dengan Staggered Entrance */}
+      <StaggeredEntrance index={0}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Siapa yang Mau Belajar Hari Ini? 🎓</Text>
+          <Text style={styles.headerSubtitle}>
+            Pilih profil anak untuk melanjutkan belajar dan memantau skor mandiri.
+          </Text>
+        </View>
+      </StaggeredEntrance>
 
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -119,87 +125,101 @@ export function ProfileSelectScreen() {
       >
         {/* Child Profile Cards Grid */}
         <View style={styles.grid}>
-          {profiles.map((p) => (
-            <View key={p.id} style={styles.cardWrapper}>
-              <Pressable
-                onPress={() => handleSelect(p.id)}
-                style={({ pressed }) => [
-                  styles.profileCard,
-                  raised(colors.sunnyDark),
-                  pressed && { transform: [{ scale: 0.97 }] },
-                ]}
-              >
-                <View style={styles.avatarCircle}>
-                  <Text style={styles.avatarEmoji}>{p.avatar || '🐱'}</Text>
-                </View>
-
-                <Text style={styles.childName} numberOfLines={1}>
-                  {p.name}
-                </Text>
-
-                {p.birthDate ? (
-                  <Text style={styles.birthDateText}>🎂 {p.birthDate}</Text>
-                ) : null}
-
-                {/* Stars and Level Badge */}
-                <View style={styles.statRow}>
-                  <View style={styles.starPill}>
-                    <Text style={{ fontSize: 13 }}>⭐</Text>
-                    <Text style={styles.starText}>{p.stars}</Text>
-                  </View>
-                  <View style={styles.levelPill}>
-                    <Text style={styles.levelText}>L{p.unlockedLevel || 1}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.playButtonPill}>
-                  <Text style={styles.playButtonText}>Mulai Belajar ➔</Text>
-                </View>
-              </Pressable>
-
-              {profiles.length > 1 && (
+          {profiles.map((p, idx) => (
+            <StaggeredEntrance key={p.id} index={1 + idx}>
+              <View style={styles.cardWrapper}>
                 <Pressable
-                  onPress={() => handleDelete(p.id, p.name)}
-                  style={styles.deleteBtn}
-                  hitSlop={8}
+                  onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                  onPress={() => handleSelect(p.id)}
+                  style={({ pressed }) => [
+                    styles.profileCard,
+                    raised(colors.sunnyDark),
+                    pressed && { transform: [{ scale: 0.94 }] },
+                  ]}
                 >
-                  <Text style={styles.deleteText}>✕</Text>
+                  <LinearGradient
+                    colors={['#FFFFFF', '#FFFDF5']}
+                    style={styles.profileCardGradient}
+                  >
+                    <View style={styles.avatarCircle}>
+                      <Text style={styles.avatarEmoji}>{p.avatar || '🐱'}</Text>
+                    </View>
+
+                    <Text style={styles.childName} numberOfLines={1}>
+                      {p.name}
+                    </Text>
+
+                    {p.birthDate ? (
+                      <Text style={styles.birthDateText}>🎂 {p.birthDate}</Text>
+                    ) : null}
+
+                    {/* Stars and Level Badge */}
+                    <View style={styles.statRow}>
+                      <View style={styles.starPill}>
+                        <Text style={{ fontSize: 13 }}>⭐</Text>
+                        <Text style={styles.starText}>{p.stars}</Text>
+                      </View>
+                      <View style={styles.levelPill}>
+                        <Text style={styles.levelText}>L{p.unlockedLevel || 1}</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.playButtonPill}>
+                      <Text style={styles.playButtonText}>Mulai Belajar ➔</Text>
+                    </View>
+                  </LinearGradient>
                 </Pressable>
-              )}
-            </View>
+
+                {profiles.length > 1 && (
+                  <Pressable
+                    onPress={() => handleDelete(p.id, p.name)}
+                    style={styles.deleteBtn}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.deleteText}>✕</Text>
+                  </Pressable>
+                )}
+              </View>
+            </StaggeredEntrance>
           ))}
 
           {/* Add Profile Card */}
-          <Pressable
-            onPress={() => {
-              container.sound.sfx('tap');
-              setShowAddModal(true);
-            }}
-            style={({ pressed }) => [
-              styles.addCard,
-              raised(colors.line),
-              pressed && { transform: [{ scale: 0.97 }] },
-            ]}
-          >
-            <View style={styles.addCircle}>
-              <Text style={styles.addPlus}>＋</Text>
-            </View>
-            <Text style={styles.addTitle}>Tambah Anak</Text>
-            <Text style={styles.addSub}>Kakak / Adik baru</Text>
-          </Pressable>
+          <StaggeredEntrance index={1 + profiles.length}>
+            <Pressable
+              onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              onPress={() => {
+                container.sound.sfx('tap');
+                setShowAddModal(true);
+              }}
+              style={({ pressed }) => [
+                styles.addCard,
+                raised(colors.line),
+                pressed && { transform: [{ scale: 0.94 }] },
+              ]}
+            >
+              <View style={styles.addCircle}>
+                <Text style={styles.addPlus}>＋</Text>
+              </View>
+              <Text style={styles.addTitle}>Tambah Anak</Text>
+              <Text style={styles.addSub}>Kakak / Adik baru</Text>
+            </Pressable>
+          </StaggeredEntrance>
         </View>
 
         {/* Mascot Encouragement */}
-        <View style={{ marginTop: 14 }}>
-          <MascotCici
-            mood="talk"
-            message="Data skor bintang, akurasi huruf, dan game tersimpan mandiri di tiap profil anak! 🐱"
-            size={74}
-          />
-        </View>
+        <StaggeredEntrance index={2 + profiles.length}>
+          <View style={{ marginTop: 14 }}>
+            <MascotCici
+              mood="talk"
+              message="Data skor bintang, akurasi huruf, dan game tersimpan mandiri di tiap profil anak! 🐱"
+              size={74}
+            />
+          </View>
+        </StaggeredEntrance>
 
         {/* Account Info and Logout */}
-        <View style={styles.accountBox}>
+        <StaggeredEntrance index={3 + profiles.length}>
+          <View style={styles.accountBox}>
           <Text style={styles.accountText}>
             Akun Terhubung: {googleAccount ? googleAccount.email : 'Orang Tua Hebat'}
           </Text>
@@ -207,6 +227,7 @@ export function ProfileSelectScreen() {
             <Text style={styles.logoutText}>🚪 Ganti Akun / Keluar</Text>
           </Pressable>
         </View>
+        </StaggeredEntrance>
       </ScrollView>
 
       {/* Add Profile Modal */}
@@ -453,13 +474,22 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   profileCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: radius.xl,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#FFE082',
+    borderBottomWidth: 6,
+    borderBottomColor: '#F59E0B',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  profileCardGradient: {
     padding: 16,
     alignItems: 'center',
     gap: 6,
-    borderWidth: 2,
-    borderColor: '#FFE082',
   },
   avatarCircle: {
     width: 68,

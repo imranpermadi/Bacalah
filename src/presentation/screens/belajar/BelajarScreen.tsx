@@ -10,14 +10,18 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import { container } from '../../../core/di/container';
 import { colors, fonts, levelMeta, radius, raised, spacing } from '../../../core/theme';
 import { ALPHABET, LETTERS } from '../../../data/content/alphabet';
 import { OPEN_SYLLABLES, SENTENCES, wordsForLevel } from '../../../data/content/curriculum';
-import { BigButton, HearButtons, ScreenTitle } from '../../components/common/ui';
+import { BigButton, ScreenTitle } from '../../components/common/ui';
 import { MascotCici } from '../../components/play/MascotCici';
 import { AlphabetCard } from '../../components/play/AlphabetCard';
 import { VoiceMicButton } from '../../components/play/VoiceMicButton';
+import { ToyBlockAudioButtons } from '../../components/play/ToyBlockAudioButtons';
+import { StaggeredEntrance } from '../../components/motion/StaggeredEntrance';
 import { CeritaMendidikModal } from '../../components/exploration/CeritaMendidikModal';
 import { KomikInteraktifModal } from '../../components/exploration/KomikInteraktifModal';
 import { PengetahuanAlamModal } from '../../components/exploration/PengetahuanAlamModal';
@@ -215,8 +219,8 @@ export function BelajarScreen() {
                 ))}
               </View>
               <Text style={styles.wordCardFull}>{item.word}</Text>
-              <HearButtons
-                text={item.word.toLowerCase()}
+              <ToyBlockAudioButtons
+                speakText={item.word.toLowerCase()}
                 slowParts={item.syllables.map((s) => s.toLowerCase())}
               />
             </View>
@@ -236,8 +240,8 @@ export function BelajarScreen() {
         <View style={styles.sentenceHero}>
           <Text style={{ fontSize: 72, textAlign: 'center' }}>{current.emoji}</Text>
           <Text style={styles.sentenceText}>{current.text}</Text>
-          <HearButtons
-            text={current.text}
+          <ToyBlockAudioButtons
+            speakText={current.text}
             slowParts={current.text.split(' ')}
           />
         </View>
@@ -254,12 +258,14 @@ export function BelajarScreen() {
                   onPress={() => {
                     setSentenceAnswered(c.label);
                     if (isCorrect) {
-                      container.sound.sfx('chime');
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      container.sound.sfx('tada_magic');
                       setCiciMood('happy');
                       setCiciMsg('Pintar sekali! Jawabanmu tepat! 🎉');
                       useAppStore.getState().addStars(1);
                     } else {
-                      container.sound.sfx('boop');
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                      container.sound.sfx('error_buzz');
                       setCiciMood('hint');
                       setCiciMsg('Hampir tepat! Ayo perhatikan lagi ceritanya! 💛');
                     }
@@ -318,97 +324,135 @@ export function BelajarScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScreenTitle sub="Jelajahi 26 Huruf A-Z, Suku Kata, dan Cerita Pendek">
-        Belajar Bersama Cici 📖
-      </ScreenTitle>
+      {/* 0. Header Title dengan Staggered Entrance */}
+      <StaggeredEntrance index={0}>
+        <ScreenTitle sub="Jelajahi 26 Huruf A-Z, Suku Kata, dan Cerita Pendek">
+          Belajar Bersama Cici 📖
+        </ScreenTitle>
+      </StaggeredEntrance>
 
-      {/* Mascot Cici Guide */}
-      <View style={{ marginVertical: 4 }}>
-        <MascotCici mood={ciciMood} message={ciciMsg} size={66} />
-      </View>
+      {/* 1. Mascot Cici Guide dengan Staggered Entrance */}
+      <StaggeredEntrance index={1}>
+        <View style={{ marginVertical: 4 }}>
+          <MascotCici mood={ciciMood} message={ciciMsg} size={66} />
+        </View>
+      </StaggeredEntrance>
 
-      {/* 🌟 Petualangan Membaca Cici: 20 Cerita, 20 Komik, Ensiklopedia Sains */}
-      <View style={styles.adventureSection}>
-        <Text style={styles.adventureHeader}>🌟 Menu Petualangan Literasi Anak:</Text>
+      {/* 2. Menu Petualangan Literasi Anak (3D Cards) dengan Staggered Entrance */}
+      <StaggeredEntrance index={2}>
+        <View style={styles.adventureSection}>
+          <Text style={styles.adventureHeader}>🌟 Menu Petualangan Literasi Anak:</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.adventureRow}
+          >
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                container.sound.sfx('pop');
+                setShowCeritaModal(true);
+              }}
+              style={[
+                styles.adventureCard,
+                { borderBottomColor: '#D97706', borderColor: '#FDE68A' },
+              ]}
+            >
+              <LinearGradient
+                colors={['#FFFBEB', '#FEF3C7']}
+                style={styles.adventureGradient}
+              >
+                <Text style={styles.adventureCardEmoji}>📖</Text>
+                <View>
+                  <Text style={styles.adventureCardTitle}>20 Cerita Kartun</Text>
+                  <Text style={styles.adventureCardSub}>Animasi & Budi Pekerti</Text>
+                </View>
+              </LinearGradient>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                container.sound.sfx('pop');
+                setShowKomikModal(true);
+              }}
+              style={[
+                styles.adventureCard,
+                { borderBottomColor: '#2563EB', borderColor: '#BFDBFE' },
+              ]}
+            >
+              <LinearGradient
+                colors={['#EFF6FF', '#DBEAFE']}
+                style={styles.adventureGradient}
+              >
+                <Text style={styles.adventureCardEmoji}>💬</Text>
+                <View>
+                  <Text style={styles.adventureCardTitle}>20 Komik Suara</Text>
+                  <Text style={styles.adventureCardSub}>Baca & Buka Balasan</Text>
+                </View>
+              </LinearGradient>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                container.sound.sfx('pop');
+                setShowSainsModal(true);
+              }}
+              style={[
+                styles.adventureCard,
+                { borderBottomColor: '#059669', borderColor: '#A7F3D0' },
+              ]}
+            >
+              <LinearGradient
+                colors={['#ECFDF5', '#D1FAE5']}
+                style={styles.adventureGradient}
+              >
+                <Text style={styles.adventureCardEmoji}>🌍</Text>
+                <View>
+                  <Text style={styles.adventureCardTitle}>Pengetahuan Alam</Text>
+                  <Text style={styles.adventureCardSub}>20 Fakta Sains Seru</Text>
+                </View>
+              </LinearGradient>
+            </Pressable>
+          </ScrollView>
+        </View>
+      </StaggeredEntrance>
+
+      {/* 3. Level Selector Bar */}
+      <StaggeredEntrance index={3}>
+        {renderLevelSelector()}
+      </StaggeredEntrance>
+
+      {/* 4. Scrollable Content based on Level */}
+      <StaggeredEntrance index={4}>
         <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.adventureRow}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 60 }}
         >
-          <Pressable
-            onPress={() => {
-              container.sound.sfx('pop');
-              setShowCeritaModal(true);
-            }}
-            style={[styles.adventureCard, { backgroundColor: '#FFFBEB', borderColor: '#FCD34D' }, raised('#F59E0B')]}
-          >
-            <Text style={styles.adventureCardEmoji}>📖</Text>
-            <View>
-              <Text style={styles.adventureCardTitle}>20 Cerita Kartun</Text>
-              <Text style={styles.adventureCardSub}>Animasi & Budi Pekerti</Text>
-            </View>
-          </Pressable>
-
-          <Pressable
-            onPress={() => {
-              container.sound.sfx('pop');
-              setShowKomikModal(true);
-            }}
-            style={[styles.adventureCard, { backgroundColor: '#EFF6FF', borderColor: '#93C5FD' }, raised('#3B82F6')]}
-          >
-            <Text style={styles.adventureCardEmoji}>💬</Text>
-            <View>
-              <Text style={styles.adventureCardTitle}>20 Komik Suara</Text>
-              <Text style={styles.adventureCardSub}>Baca & Buka Balasan</Text>
-            </View>
-          </Pressable>
-
-          <Pressable
-            onPress={() => {
-              container.sound.sfx('pop');
-              setShowSainsModal(true);
-            }}
-            style={[styles.adventureCard, { backgroundColor: '#ECFDF5', borderColor: '#6EE7B7' }, raised('#10B981')]}
-          >
-            <Text style={styles.adventureCardEmoji}>🌍</Text>
-            <View>
-              <Text style={styles.adventureCardTitle}>Pengetahuan Alam</Text>
-              <Text style={styles.adventureCardSub}>20 Fakta Sains Seru</Text>
-            </View>
-          </Pressable>
+          {activeLevel === 1 && renderLevel1Alphabet()}
+          {activeLevel === 2 && renderLevel2Syllables()}
+          {activeLevel === 3 &&
+            renderWordLevel(
+              3,
+              '📕 Gabung 2 Suku Kata Terbuka',
+              'Kata dasar mudah dengan vokal A, I, U, E, O'
+            )}
+          {activeLevel === 4 &&
+            renderWordLevel(
+              4,
+              '🏠 Suku Kata Tertutup',
+              'Kata berakhiran konsonan (MA-KAN, RU-MAH, dsb.)'
+            )}
+          {activeLevel === 5 &&
+            renderWordLevel(
+              5,
+              '🌸 Diftong & Konsonan Rangkap',
+              'Kata dengan bunyi NG, NY, dan diftong AU/AI'
+            )}
+          {activeLevel === 6 && renderLevel6Sentences()}
         </ScrollView>
-      </View>
-
-      {/* Level Selector Bar */}
-      {renderLevelSelector()}
-
-      {/* Scrollable Content based on Level */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 60 }}
-      >
-        {activeLevel === 1 && renderLevel1Alphabet()}
-        {activeLevel === 2 && renderLevel2Syllables()}
-        {activeLevel === 3 &&
-          renderWordLevel(
-            3,
-            '📕 Gabung 2 Suku Kata Terbuka',
-            'Kata dasar mudah dengan vokal A, I, U, E, O'
-          )}
-        {activeLevel === 4 &&
-          renderWordLevel(
-            4,
-            '🏠 Suku Kata Tertutup',
-            'Kata berakhiran konsonan (MA-KAN, RU-MAH, dsb.)'
-          )}
-        {activeLevel === 5 &&
-          renderWordLevel(
-            5,
-            '🌸 Diftong & Konsonan Rangkap',
-            'Kata dengan bunyi NG, NY, dan diftong AU/AI'
-          )}
-        {activeLevel === 6 && renderLevel6Sentences()}
-      </ScrollView>
+      </StaggeredEntrance>
 
       {/* Exploration Modals */}
       <CeritaMendidikModal
@@ -582,17 +626,26 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   adventureCard: {
+    borderRadius: radius.lg,
+    borderWidth: 2,
+    borderBottomWidth: 5,
+    overflow: 'hidden',
+    minWidth: 185,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  adventureGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: radius.lg,
-    borderWidth: 1.5,
-    minWidth: 180,
+    paddingVertical: 12,
   },
   adventureCardEmoji: {
-    fontSize: 28,
+    fontSize: 30,
   },
   adventureCardTitle: {
     fontFamily: fonts.black,
