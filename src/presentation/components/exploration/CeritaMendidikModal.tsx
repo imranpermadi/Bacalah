@@ -247,10 +247,10 @@ export function CeritaMendidikModal({
                 🎙️ Giliranmu membaca! Tekan mikrofon di bawah:
               </Text>
               <VoiceMicButton
-                target={selectedStory.pages[currentPage].text.slice(0, 30)}
+                target={selectedStory.pages[currentPage].text}
                 speakText={selectedStory.pages[currentPage].text}
                 onResult={(score) => {
-                  if (score.stars >= 1) {
+                  if (score.transcript && score.similarity >= 0.25) {
                     setPageCompleted((prev) => ({ ...prev, [currentPage]: true }));
                     container.sound.sfx('chime');
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

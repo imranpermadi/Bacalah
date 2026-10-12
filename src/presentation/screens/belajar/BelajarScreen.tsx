@@ -32,6 +32,7 @@ const { width } = Dimensions.get('window');
 export function BelajarScreen() {
   const [activeLevel, setActiveLevel] = useState(1);
   const [selectedLetter, setSelectedLetter] = useState('A');
+  const [selectedSyllable, setSelectedSyllable] = useState('BA');
   const [ciciMood, setCiciMood] = useState<'idle' | 'talk' | 'happy' | 'hint'>('idle');
   const [ciciMsg, setCiciMsg] = useState('Pilih petualangan membaca atau level belajar yang kamu mau ya! 🐱');
   
@@ -179,24 +180,41 @@ export function BelajarScreen() {
   const renderLevel2Syllables = () => (
     <View style={styles.moduleCard}>
       <Text style={styles.sectionHeading}>🧩 Suku Kata Terbuka (2 Huruf)</Text>
-      <Text style={styles.sectionSub}>Ketuk suku kata untuk mendengarkan bunyinya!</Text>
+      <Text style={styles.sectionSub}>Ketuk suku kata untuk mendengarkan bunyinya dan latihan bicara!</Text>
       <View style={styles.syllableGrid}>
-        {OPEN_SYLLABLES.slice(0, 30).map((syl, i) => (
-          <Pressable
-            key={syl}
-            onPress={() => {
-              container.sound.sfx('tap');
-              container.sound.speak(syl.toLowerCase());
-            }}
-            style={[
-              styles.syllableBubble,
-              raised(colors.skyDark),
-              { backgroundColor: i % 2 === 0 ? colors.sky : colors.mint },
-            ]}
-          >
-            <Text style={styles.syllableText}>{syl}</Text>
-          </Pressable>
-        ))}
+        {OPEN_SYLLABLES.slice(0, 30).map((syl, i) => {
+          const isSelected = selectedSyllable === syl;
+          return (
+            <Pressable
+              key={syl}
+              onPress={() => {
+                container.sound.sfx('tap');
+                setSelectedSyllable(syl);
+                container.sound.speak(syl.toLowerCase());
+              }}
+              style={[
+                styles.syllableBubble,
+                raised(isSelected ? colors.sunnyDark : colors.skyDark),
+                { backgroundColor: isSelected ? colors.sunny : i % 2 === 0 ? colors.sky : colors.mint },
+              ]}
+            >
+              <Text style={styles.syllableText}>{syl}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Interactive Voice Practice Spotlight for Selected Syllable */}
+      <View style={styles.syllablePracticeBox}>
+        <Text style={styles.practiceSubTitle}>🎤 Latihan Ucapkan Suku Kata:</Text>
+        <Text style={styles.practiceBigSyllable}>{selectedSyllable}</Text>
+        <View style={{ marginTop: 8 }}>
+          <VoiceMicButton
+            target={selectedSyllable.toLowerCase()}
+            speakText={selectedSyllable.toLowerCase()}
+            showHearButton
+          />
+        </View>
       </View>
     </View>
   );
@@ -223,6 +241,14 @@ export function BelajarScreen() {
                 speakText={item.word.toLowerCase()}
                 slowParts={item.syllables.map((s) => s.toLowerCase())}
               />
+              {/* Voice Practice per kata materi */}
+              <View style={styles.wordVoiceSection}>
+                <VoiceMicButton
+                  target={item.word.toLowerCase()}
+                  speakText={item.word.toLowerCase()}
+                  accepted={[item.word.toLowerCase(), ...item.syllables.map((s) => s.toLowerCase())]}
+                />
+              </View>
             </View>
           ))}
         </View>
@@ -244,6 +270,14 @@ export function BelajarScreen() {
             speakText={current.text}
             slowParts={current.text.split(' ')}
           />
+          {/* Voice Challenge Practice for Sentence */}
+          <View style={styles.sentenceVoiceBox}>
+            <Text style={styles.sentenceVoicePrompt}>🎙️ Ayo tirukan dan baca kalimat ini:</Text>
+            <VoiceMicButton
+              target={current.text}
+              speakText={current.text}
+            />
+          </View>
         </View>
 
         <View style={styles.questionBox}>
@@ -656,5 +690,42 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 11,
     color: colors.inkSoft,
+  },
+  syllablePracticeBox: {
+    marginTop: 18,
+    backgroundColor: '#F8FAFC',
+    borderRadius: radius.lg,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  practiceSubTitle: {
+    fontFamily: fonts.black,
+    fontSize: 15,
+    color: colors.ink,
+    marginBottom: 4,
+  },
+  practiceBigSyllable: {
+    fontFamily: fonts.black,
+    fontSize: 48,
+    color: colors.ink,
+    lineHeight: 56,
+  },
+  wordVoiceSection: {
+    marginTop: 10,
+    width: '100%',
+    alignItems: 'center',
+  },
+  sentenceVoiceBox: {
+    marginTop: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  sentenceVoicePrompt: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.inkSoft,
+    marginBottom: 6,
   },
 });

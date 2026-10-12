@@ -342,10 +342,10 @@ export function KomikInteraktifModal({
                   (Balasan {currentPanel.characterB.name} akan terbuka otomatis jika kamu membaca dengan benar!)
                 </Text>
                 <VoiceMicButton
-                  target={currentPanel.promptText.slice(0, 30)}
+                  target={currentPanel.promptText}
                   speakText={currentPanel.promptText}
                   onResult={(res) => {
-                    if (res.stars >= 1) {
+                    if (res.transcript && res.similarity >= 0.25) {
                       handleVoiceSuccess();
                     }
                   }}

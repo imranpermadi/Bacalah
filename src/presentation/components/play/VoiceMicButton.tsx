@@ -73,23 +73,33 @@ export function VoiceMicButton({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const r = await container.voice.listenAndScore(target, accepted ?? [target]);
       setResult(r);
-      setNote(msgFor(r.stars));
-      saveVoice(target, r.transcript || target, r.similarity, r.stars);
 
-      if (r.stars >= 2) {
-        container.sound.sfx('tada_magic');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const hasSpoken = Boolean(r.transcript && r.transcript.trim().length > 0 && r.similarity > 0);
+      if (hasSpoken) {
+        setNote(msgFor(r.stars));
+        saveVoice(target, r.transcript, r.similarity, r.stars);
+
+        if (r.stars >= 2) {
+          container.sound.sfx('tada_magic');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } else {
+          container.sound.sfx('pop');
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
       } else {
-        container.sound.sfx('pop');
+        setNote('Cici belum mendengar suaramu. Ayo dekatkan HP dan ucapkan lagi ya! 🐱🎤');
+        container.sound.sfx('boop');
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
       onResult?.(r);
     } catch (e: any) {
-      setNote(
-        e?.message === 'permission'
-          ? 'Cici butuh izin mikrofon ya. Pilih "Saat aplikasi digunakan"! 🎤'
-          : 'Bagus sekali usahanya! Ayo coba bicara lagi bersama Cici! 🐱💛'
-      );
+      if (e?.message === 'permission') {
+        setNote('Cici butuh izin mikrofon ya. Pilih "Saat aplikasi digunakan"! 🎤');
+      } else if (e?.message === 'engine_unavailable') {
+        setNote('Pengenal suara belum aktif di HP ini. Pastikan Google Voice Typing aktif ya! 📱');
+      } else {
+        setNote('Cici belum mendengar suaramu. Ayo coba bicara lagi bersama Cici! 🐱💛');
+      }
     } finally {
       setListening(false);
     }
@@ -120,13 +130,15 @@ export function VoiceMicButton({
 
       {note ? <Text style={styles.note}>{note}</Text> : null}
 
-      {result && result.transcript ? (
+      {result && result.transcript && result.similarity > 0 ? (
         <View style={styles.heardBadge}>
           <Text style={styles.heard}>Cici dengar: “{result.transcript}”</Text>
         </View>
       ) : null}
 
-      {result ? <Stars count={result.stars} size={42} /> : null}
+      {result && result.transcript && result.similarity > 0 ? (
+        <Stars count={result.stars} size={42} />
+      ) : null}
     </View>
   );
 }

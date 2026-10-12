@@ -18,6 +18,7 @@ import { NATURE_SCIENCE_FACTS, NatureScienceFact } from '../../../data/content/n
 import { ScienceAnimatedStage } from './ScienceAnimatedStage';
 import { ScienceFactCard3D } from './ScienceFactCard3D';
 import { StaggeredEntrance } from '../motion/StaggeredEntrance';
+import { VoiceMicButton } from '../play/VoiceMicButton';
 
 const { width } = Dimensions.get('window');
 
@@ -190,6 +191,20 @@ export function PengetahuanAlamModal({
                   <Text style={styles.paragraphText}>{para}</Text>
                 </View>
               ))}
+            </View>
+
+            {/* Interactive Voice Mic Section: Anak Latihan Membaca Sains */}
+            <View style={styles.voiceSection}>
+              <Text style={styles.voiceSectionTitle}>
+                🎙️ Giliranmu membaca! Ucapkan rangkuman sains ini:
+              </Text>
+              <Text style={styles.voiceTargetQuote}>
+                "{activeFact.shortSummary}"
+              </Text>
+              <VoiceMicButton
+                target={activeFact.shortSummary}
+                speakText={activeFact.shortSummary}
+              />
             </View>
 
             <View style={{ gap: 10, width: '100%', marginTop: 8 }}>
@@ -425,5 +440,28 @@ const styles = StyleSheet.create({
   },
   funFactTitle: { fontFamily: fonts.black, fontSize: 14, color: '#C2410C', marginBottom: 4 },
   funFactContent: { fontFamily: fonts.bold, fontSize: 15, color: '#9A3412', lineHeight: 22 },
+  voiceSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: radius.lg,
+    padding: 18,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    gap: 10,
+  },
+  voiceSectionTitle: {
+    fontFamily: fonts.black,
+    fontSize: 15,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+  voiceTargetQuote: {
+    fontFamily: fonts.bold,
+    fontSize: 14,
+    color: colors.inkSoft,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    paddingHorizontal: 8,
+  },
 });
 
