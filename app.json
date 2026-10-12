@@ -49,10 +49,10 @@
       "./plugins/with-slim-build",
       "expo-web-browser"
     ],
-    "owner": "imronakhi",
+    "owner": "akhiimron",
     "extra": {
       "eas": {
-        "projectId": "88a2cc24-c4bb-4fdd-8444-db8b457cd363"
+        "projectId": "f24c64b0-dfac-4a01-9390-63113d7fdd08"
       }
     }
   }
